@@ -2,7 +2,7 @@ import React from 'react';
 
 const GuideTab = ({ active }) => {
   return (
-    <div className="content-container" style={{ display: active ? 'block' : 'none', position: 'absolute', top: '70px', zIndex: 5, width: '100%' }}>
+    <div className="content-container" style={{ display: active ? 'block' : 'none' }}>
       <h1 className="ios-large-title">Tamanhos Mínimos</h1>
       <p style={{color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20}}>Consulte sempre a legislação em vigor. Medida da ponta do focinho à extremidade da barbatana caudal.</p>
       

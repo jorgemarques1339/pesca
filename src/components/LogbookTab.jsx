@@ -69,7 +69,7 @@ const LogbookTab = ({ active, selectedZone }) => {
   };
 
   return (
-    <div className="content-container" style={{ display: active ? 'block' : 'none', position: 'absolute', top: '70px', zIndex: 5, width: '100%', paddingBottom: '120px' }}>
+    <div className="content-container" style={{ display: active ? 'block' : 'none' }}>
       <h1 className="ios-large-title">Diário de Pesca</h1>
       <p style={{color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20}}>Registe as suas capturas e use a IA para identificar a espécie.</p>
       
