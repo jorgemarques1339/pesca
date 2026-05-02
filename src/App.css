@@ -121,62 +121,73 @@
   font-size: 1.1rem;
 }
 
-/* Tides Horizontal Widget (Bottom) */
-.tide-widget-bottom {
-  position: absolute;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  padding: 16px 32px;
-  z-index: 1000;
-  pointer-events: auto;
-  min-width: 600px;
-  justify-content: center;
-  background: rgba(15, 22, 38, 0.85);
-  backdrop-filter: blur(16px);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Tide Card (Anchored on Map) */
+.tide-tooltip-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+/* Hide the leaflet tooltip arrow */
+.leaflet-tooltip-top:before, 
+.leaflet-tooltip-bottom:before, 
+.leaflet-tooltip-left:before, 
+.leaflet-tooltip-right:before {
+  display: none !important;
 }
 
-.tide-title-vertical {
+.tide-card {
+  background: rgba(15, 22, 38, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  width: 160px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding-right: 24px;
+  gap: 8px;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
 
-.tide-title-vertical .widget-title {
+.tide-card-header h4 {
   margin: 0;
   font-size: 0.9rem;
-}
-
-.tide-title-vertical .zone-name {
-  font-weight: 700;
-  font-size: 1rem;
   color: var(--accent-cyan);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.tide-horizontal-info {
+.tide-card-chart {
+  width: 100%;
+  height: 50px;
+  margin-top: -4px;
+}
+
+.tide-card-times {
   display: flex;
-  gap: 24px;
-  flex: 1;
-  justify-content: space-around;
-  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
 }
 
-.tide-item {
+.tide-time {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 8px 16px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  min-width: 100px;
+  gap: 2px;
+}
+
+.tide-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.tide-val {
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 /* Fishing Probability */
@@ -444,13 +455,7 @@
   .sidebar-left { width: 300px; }
   .sidebar-right { width: 300px; }
 
-  /* Compact Tide Widget */
-  .tide-widget-bottom {
-    bottom: 32px;
-    left: calc(50% + 40px); /* Adjust for 80px sidebar */
-    min-width: auto;
-    width: auto;
-  }
+  /* Tablet adjustments if needed */
 }
 
 
@@ -523,7 +528,7 @@
   .tab-map .sidebar-right { width: 100%; height: auto; pointer-events: none; }
   .tab-map .sidebar-right > .widget:not(:first-child) { display: none; }
   
-  .tab-book .tide-widget-bottom, .tab-scale .tide-widget-bottom, .tab-community .tide-widget-bottom { display: none; }
+  
   
   .tab-book .map-container, .tab-scale .map-container, .tab-community .map-container,
   .tab-book .overlay-container, .tab-scale .overlay-container, .tab-community .overlay-container { display: none; }
@@ -540,43 +545,16 @@
     background: var(--bg-primary);
   }
 
-  /* Compact Mobile Tide Widget */
-  .tide-widget-bottom {
-    position: absolute;
-    bottom: 110px;
-    left: 12px;
-    right: 12px;
-    transform: none;
-    min-width: 0;
-    width: auto;
-    flex-direction: row;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 16px;
-    background: rgba(15, 22, 38, 0.9);
+  /* Scale down tide cards for mobile so they don't cover everything */
+  .tide-card {
+    width: 120px;
+    padding: 8px;
+    gap: 4px;
   }
-  .tide-title-vertical {
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    padding-right: 12px;
-    min-width: max-content;
-  }
-  .tide-title-vertical .widget-title { font-size: 0.75rem; }
-  .tide-title-vertical .zone-name { font-size: 0.85rem; }
-  .tide-horizontal-info {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 8px;
-    overflow-x: auto;
-  }
-  .tide-horizontal-info::-webkit-scrollbar { display: none; }
-  .tide-item {
-    flex: 0 0 auto;
-    min-width: max-content;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-  }
-  .tide-widget-bottom a { display: none; }
+  .tide-card-header h4 { font-size: 0.75rem; }
+  .tide-card-times { padding-top: 4px; }
+  .tide-val { font-size: 0.7rem; }
+  .tide-label { font-size: 0.55rem; }
 
   /* Compact Weather Widget for Mobile Map */
   .weather-widget-container {

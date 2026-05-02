@@ -6,12 +6,12 @@ import {
   Popup,
   SVGOverlay,
   Marker,
+  Tooltip
 } from "react-leaflet";
 import {
   Anchor,
   Fish,
   Map as MapIcon,
-  Info,
   LayoutList,
   BookOpen,
   Scale,
@@ -33,7 +33,7 @@ import MapEventsHandler from "./components/MapEventsHandler";
 
 function App() {
   const [selectedZone, setSelectedZone] = useState(null);
-  const [activeTab, setActiveTab] = useState("map"); // 'map', 'info', 'scale', 'book'
+  const [activeTab, setActiveTab] = useState("map"); 
   
   // Waypoint & Layers State
   const [isWaypointMode, setIsWaypointMode] = useState(false);
@@ -43,9 +43,11 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [tideData, setTideData] = useState({
+  const [tides, setTides] = useState({
     loading: true,
-    data: null,
+    norte: null,
+    centro: null,
+    sul: null,
     error: null,
   });
   
@@ -54,19 +56,6 @@ function App() {
     data: null,
     error: null,
   });
-  
-  const [probability, setProbability] = useState(0);
-
-  // Calcula a fase da lua para a Teoria Solunar
-  const calculateFishingProbability = () => {
-    const LUNAR_MONTH = 29.53058867 * 24 * 60 * 60 * 1000;
-    const knownNewMoon = new Date('2024-01-11T11:57:00Z').getTime();
-    const diff = Date.now() - knownNewMoon;
-    const phase = (diff % LUNAR_MONTH) / LUNAR_MONTH; // 0 to 1
-    const wave = Math.cos(phase * Math.PI * 4); // varia entre -1 e 1
-    const normalized = (wave + 1) / 2; // varia entre 0 e 1
-    return Math.round(45 + (normalized * 50));
-  };
 
   const getWindCardinal = (degrees) => {
     const val = Math.floor((degrees / 22.5) + 0.5);
@@ -75,39 +64,35 @@ function App() {
   };
 
   useEffect(() => {
-    setProbability(calculateFishingProbability());
-  }, []);
-
-  useEffect(() => {
     const fetchAllData = async () => {
-      setTideData((prev) => ({ ...prev, loading: true }));
+      setTides((prev) => ({ ...prev, loading: true }));
       setWeatherData((prev) => ({ ...prev, loading: true }));
 
       const lat = selectedZone ? selectedZone.coordinates[0][0] : 41.15;
       const lon = selectedZone ? selectedZone.coordinates[0][1] : -8.61;
 
       try {
-        const urlPath = selectedZone
-          ? selectedZone.tabuaUrl
-          : "/Portugal/Porto/Vila-do-Conde/";
-        const tideResponse = await fetch(`/api/tabua${urlPath}`);
-        if (!tideResponse.ok) throw new Error("Tide Network Error");
-        const html = await tideResponse.text();
+        const urls = [
+          { key: 'norte', url: '/Portugal/Porto/Vila-do-Conde/' },
+          { key: 'centro', url: '/Portugal/Lisboa/Cascais/' },
+          { key: 'sul', url: '/Portugal/Faro/Faro/' }
+        ];
 
-        const highTides = [...html.matchAll(/High tide<\/th>\s*<td>(.*?)<\/td>/ig)].map(m => m[1]);
-        const lowTides = [...html.matchAll(/Low tide<\/th>\s*<td>(.*?)<\/td>/ig)].map(m => m[1]);
+        const tideResults = await Promise.all(urls.map(async ({key, url}) => {
+          const res = await fetch(`/api/tabua${url}`);
+          if (!res.ok) throw new Error("Tide Network Error");
+          const html = await res.text();
+          const highTides = [...html.matchAll(/High tide<\/th>\s*<td>(.*?)<\/td>/ig)].map(m => m[1]);
+          const lowTides = [...html.matchAll(/Low tide<\/th>\s*<td>(.*?)<\/td>/ig)].map(m => m[1]);
+          return { key, data: { preia1: highTides[0], preia2: highTides[1], baixa1: lowTides[0], baixa2: lowTides[1] } };
+        }));
 
-        if (highTides.length > 0 || lowTides.length > 0) {
-          setTideData({
-            loading: false,
-            data: { preia1: highTides[0], preia2: highTides[1], baixa1: lowTides[0], baixa2: lowTides[1] },
-            error: null,
-          });
-        } else {
-          throw new Error("Dados não encontrados");
-        }
+        const newTides = { norte: null, centro: null, sul: null };
+        tideResults.forEach(r => newTides[r.key] = r.data);
+        
+        setTides({ loading: false, ...newTides, error: null });
       } catch (err) {
-        setTideData({ loading: false, data: null, error: "Erro ao carregar" });
+        setTides({ loading: false, norte: null, centro: null, sul: null, error: "Erro ao carregar marés" });
       }
 
       try {
@@ -134,7 +119,7 @@ function App() {
           error: null
         });
       } catch (err) {
-        setWeatherData({ loading: false, data: null, error: "Erro ao carregar" });
+        setWeatherData({ loading: false, data: null, error: "Erro ao carregar meteorologia" });
       }
     };
 
@@ -156,19 +141,13 @@ function App() {
       setWaypoints(updatedWaypoints);
       localStorage.setItem("fishing_waypoints", JSON.stringify(updatedWaypoints));
     }
-    setIsWaypointMode(false); // desativa o modo após adicionar
+    setIsWaypointMode(false);
   };
 
   const center = [39.5, -8.0];
 
   return (
     <div className={`app-container tab-${activeTab}`}>
-      {/* Mobile Header */}
-      <div className="mobile-header">
-        <Fish className="brand-icon" size={24} />
-        <span className="brand-title">Pesca Lúdica PT</span>
-      </div>
-
       {/* Floating Action Buttons for Map */}
       {activeTab === "map" && (
         <div className="map-fab-container">
@@ -223,11 +202,36 @@ function App() {
               <g style={{ transformOrigin: 'center' }}>
                 <path className="animated-wave" d="M -10 0 Q -5 25 -10 50 T -10 100" />
                 <path className="animated-wave wave-delay-1" d="M -30 0 Q -25 25 -30 50 T -30 100" />
-                <path className="animated-wave wave-delay-2" d="M -50 0 Q -45 25 -50 50 T -50 100" />
                 <path className="animated-wave wave-delay-3" d="M -70 0 Q -65 25 -70 50 T -70 100" />
               </g>
             </svg>
           </SVGOverlay>
+
+          {/* Tides Anchored to Map */}
+          {!tides.loading && !tides.error && (
+            <>
+              {/* Norte (Offshore Viana/Porto) */}
+              <Marker position={[41.2, -9.6]} opacity={0}>
+                <Tooltip permanent direction="center" className="tide-tooltip-container">
+                  <TideWidget title="Norte" data={tides.norte} />
+                </Tooltip>
+              </Marker>
+              
+              {/* Centro (Offshore Peniche/Lisboa) */}
+              <Marker position={[39.1, -10.3]} opacity={0}>
+                <Tooltip permanent direction="center" className="tide-tooltip-container">
+                  <TideWidget title="Centro" data={tides.centro} />
+                </Tooltip>
+              </Marker>
+              
+              {/* Sul (Offshore Sagres/Faro) */}
+              <Marker position={[36.7, -8.8]} opacity={0}>
+                <Tooltip permanent direction="center" className="tide-tooltip-container">
+                  <TideWidget title="Sul" data={tides.sul} />
+                </Tooltip>
+              </Marker>
+            </>
+          )}
 
           {/* Zones Polygons */}
           {ZONES.map((zone) => (
@@ -281,8 +285,6 @@ function App() {
           ))}
         </MapContainer>
       </div>
-
-      <TideWidget tideData={tideData} selectedZone={selectedZone} />
 
       {/* UI Overlay */}
       <div className="overlay-container" style={{ pointerEvents: 'none' }}>
