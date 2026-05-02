@@ -82,9 +82,22 @@ function App() {
           const res = await fetch(`/api/tabua${url}`);
           if (!res.ok) throw new Error("Tide Network Error");
           const html = await res.text();
-          const highTides = [...html.matchAll(/High tide<\/th>\s*<td>(.*?)<\/td>/ig)].map(m => m[1]);
-          const lowTides = [...html.matchAll(/Low tide<\/th>\s*<td>(.*?)<\/td>/ig)].map(m => m[1]);
-          return { key, data: { preia1: highTides[0], preia2: highTides[1], baixa1: lowTides[0], baixa2: lowTides[1] } };
+          
+          // Improved regex for TidesChart table structure
+          const matches = [...html.matchAll(/<td>(High tide|Low tide)<\/td>\s*<td>(\d{1,2}:\d{2}\s+(?:am|pm))<\/td>/ig)];
+          
+          const highTides = matches.filter(m => m[1].toLowerCase().includes('high')).map(m => m[2]);
+          const lowTides = matches.filter(m => m[1].toLowerCase().includes('low')).map(m => m[2]);
+          
+          return { 
+            key, 
+            data: { 
+              preia1: highTides[0] || "--:--", 
+              preia2: highTides[1] || "--:--", 
+              baixa1: lowTides[0] || "--:--", 
+              baixa2: lowTides[1] || "--:--" 
+            } 
+          };
         }));
 
         const newTides = { norte: null, centro: null, sul: null };
