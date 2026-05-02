@@ -51,22 +51,22 @@ export default defineConfig({
           },
           {
             urlPattern: /^https:\/\/server\.arcgisonline\.com\/ArcGIS\/rest\/services\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'map-tiles-base',
               expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+                maxEntries: 10000,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               },
             },
           },
           {
             urlPattern: /^https:\/\/tiles\.openseamap\.org\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'map-tiles-seamark',
               expiration: {
-                maxEntries: 500,
+                maxEntries: 10000,
                 maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
               },
             },

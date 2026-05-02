@@ -17,7 +17,8 @@ import {
   Scale,
   MapPin,
   Layers,
-  Users
+  Users,
+  Database
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./App.css";
@@ -30,6 +31,7 @@ import GuideTab from "./components/GuideTab";
 import LogbookTab from "./components/LogbookTab";
 import CommunityTab from "./components/CommunityTab";
 import MapEventsHandler from "./components/MapEventsHandler";
+import OfflineModal from "./components/OfflineModal";
 
 function App() {
   const [selectedZone, setSelectedZone] = useState(null);
@@ -38,6 +40,7 @@ function App() {
   // Waypoint & Layers State
   const [isWaypointMode, setIsWaypointMode] = useState(false);
   const [showMarineLayer, setShowMarineLayer] = useState(false);
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
   const [waypoints, setWaypoints] = useState(() => {
     const saved = localStorage.getItem("fishing_waypoints");
     return saved ? JSON.parse(saved) : [];
@@ -178,8 +181,20 @@ function App() {
           >
             <MapPin size={20} />
           </button>
+          <button 
+            className="fab"
+            onClick={() => setIsOfflineModalOpen(true)}
+            title="Mapas Offline"
+          >
+            <Database size={20} />
+          </button>
         </div>
       )}
+
+      <OfflineModal 
+        isOpen={isOfflineModalOpen} 
+        onClose={() => setIsOfflineModalOpen(false)} 
+      />
 
       {/* Background Map */}
       <div className="map-container" style={{ cursor: isWaypointMode ? 'crosshair' : 'grab' }}>
