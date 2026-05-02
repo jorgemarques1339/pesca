@@ -16,7 +16,8 @@ import {
   BookOpen,
   Scale,
   MapPin,
-  Layers
+  Layers,
+  Users
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./App.css";
@@ -27,6 +28,7 @@ import WeatherWidget from "./components/WeatherWidget";
 import TideWidget from "./components/TideWidget";
 import GuideTab from "./components/GuideTab";
 import LogbookTab from "./components/LogbookTab";
+import CommunityTab from "./components/CommunityTab";
 import MapEventsHandler from "./components/MapEventsHandler";
 
 function App() {
@@ -355,6 +357,9 @@ function App() {
         <button className={`nav-button ${activeTab === "scale" ? "active" : ""}`} onClick={() => setActiveTab("scale")}>
           <Scale size={24} /><span>Guia</span>
         </button>
+        <button className={`nav-button ${activeTab === "community" ? "active" : ""}`} onClick={() => setActiveTab("community")}>
+          <Users size={24} /><span>Social</span>
+        </button>
         <button className={`nav-button ${activeTab === "book" ? "active" : ""}`} onClick={() => setActiveTab("book")}>
           <BookOpen size={24} /><span>Diário</span>
         </button>
@@ -362,6 +367,7 @@ function App() {
 
       <GuideTab active={activeTab === 'scale'} />
       <LogbookTab active={activeTab === 'book'} selectedZone={selectedZone} />
+      <CommunityTab active={activeTab === 'community'} />
 
     </div>
   );

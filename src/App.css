@@ -314,7 +314,8 @@
   }
 
   .tab-book .tide-widget-bottom,
-  .tab-scale .tide-widget-bottom {
+  .tab-scale .tide-widget-bottom,
+  .tab-community .tide-widget-bottom {
     display: none;
   }
 
@@ -396,8 +397,8 @@
 }
 
 /* New Tab Content */
-.tab-book .map-container, .tab-scale .map-container,
-.tab-book .overlay-container, .tab-scale .overlay-container {
+.tab-book .map-container, .tab-scale .map-container, .tab-community .map-container,
+.tab-book .overlay-container, .tab-scale .overlay-container, .tab-community .overlay-container {
   display: none;
 }
 
