@@ -337,7 +337,7 @@
   /* Redesigned Compact Mobile Tide Widget */
   .tide-widget-bottom {
     position: absolute;
-    bottom: 84px; /* Above mobile nav */
+    bottom: 110px; /* Above mobile nav */
     left: 12px;
     right: 12px;
     transform: none;
