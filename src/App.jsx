@@ -1,286 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
   Polygon,
   Popup,
-  Marker,
-  useMap,
   SVGOverlay,
 } from "react-leaflet";
 import {
-  Waves,
-  Wind,
-  Thermometer,
   Anchor,
   Fish,
   Map as MapIcon,
   Info,
   LayoutList,
   BookOpen,
-  Scale,
-  Plus,
-  Trash2
+  Scale
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./App.css";
 
-// Dados das Zonas de Pesca (Portugal Continental)
-const ZONES = [
-  // ZONAS PROIBIDAS (Vermelho)
-  {
-    id: "zf1",
-    name: "Parque Natural do Litoral Norte",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Braga/Esposende/",
-    coordinates: [
-      [41.56, -8.83],
-      [41.56, -8.80],
-      [41.51, -8.80],
-      [41.51, -8.83],
-    ],
-    description: "Zona de Proteção. Pesca restrita ou proibida em áreas específicas para preservação.",
-  },
-  {
-    id: "zf_povoa_porto",
-    name: "Porto de Pesca da Póvoa de Varzim",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Porto/Povoa-de-Varzim/",
-    coordinates: [
-      [41.380, -8.775],
-      [41.380, -8.760],
-      [41.370, -8.760],
-      [41.370, -8.775],
-    ],
-    description: "Pesca totalmente proibida nos molhes, canal de navegação e interior da doca.",
-  },
-  {
-    id: "zf_mindelo",
-    name: "Reserva Ornitológica de Mindelo",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Porto/Vila-do-Conde/",
-    coordinates: [
-      [41.325, -8.745],
-      [41.325, -8.730],
-      [41.305, -8.730],
-      [41.305, -8.745],
-    ],
-    description: "Paisagem Protegida Regional. Pesca lúdica estritamente interdita nas linhas de água abrangidas.",
-  },
-  {
-    id: "zf_viladoconde",
-    name: "Porto de Vila do Conde / Foz do Ave",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Porto/Vila-do-Conde/",
-    coordinates: [
-      [41.340, -8.755],
-      [41.340, -8.740],
-      [41.330, -8.740],
-      [41.330, -8.755],
-    ],
-    description: "Interdita na barra, canal de navegação, estaleiros e cais portuários por razões de segurança.",
-  },
-  {
-    id: "zf_leixoes",
-    name: "Porto de Leixões (Matosinhos)",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Porto/Matosinhos/",
-    coordinates: [
-      [41.190, -8.715],
-      [41.190, -8.695],
-      [41.175, -8.695],
-      [41.175, -8.715],
-    ],
-    description: "Pesca totalmente proibida no canal exterior, anteporto, docas e marina por razões de segurança marítima.",
-  },
-  {
-    id: "zf2",
-    name: "Reserva Natural das Berlengas",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Leiria/Peniche/",
-    coordinates: [
-      [39.42, -9.52],
-      [39.42, -9.48],
-      [39.4, -9.48],
-      [39.4, -9.52],
-    ],
-    description: "Área marinha protegida. Pesca fortemente limitada e sujeita a licenças especiais.",
-  },
-  {
-    id: "zf3",
-    name: "Parque Marinho da Arrábida",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Setubal/Sesimbra/",
-    coordinates: [
-      [38.45, -9.05],
-      [38.45, -8.95],
-      [38.42, -8.95],
-      [38.42, -9.05],
-    ],
-    description: "Zona de Proteção Total. Pesca estritamente proibida (Pedra do Leão, etc).",
-  },
-  {
-    id: "zf4",
-    name: "Ilhotes do Martinhal (Sagres)",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Faro/Sagres/",
-    coordinates: [
-      [37.025, -8.935],
-      [37.025, -8.920],
-      [37.010, -8.920],
-      [37.010, -8.935],
-    ],
-    description: "Interdição total de pesca por razões de conservação da biodiversidade.",
-  },
-  {
-    id: "zf5",
-    name: "Ria Formosa (Proteção Total)",
-    type: "forbidden",
-    tabuaUrl: "/Portugal/Faro/Faro/",
-    coordinates: [
-      [37.00, -7.95],
-      [37.00, -7.90],
-      [36.97, -7.90],
-      [36.97, -7.95],
-    ],
-    description: "Áreas de viveiros e interdição ambiental. Proibida a pesca lúdica.",
-  },
-
-  // ZONAS PERMITIDAS (Verde)
-  {
-    id: "zp1",
-    name: "Molhes de Viana do Castelo",
-    type: "allowed",
-    tabuaUrl: "/Portugal/Viana-do-Castelo/Viana-do-Castelo/",
-    coordinates: [
-      [41.69, -8.845],
-      [41.69, -8.830],
-      [41.67, -8.830],
-      [41.67, -8.845],
-    ],
-    description: "Excelente local para pesca apeada ao robalo e sargo.",
-  },
-  {
-    id: "zp_agucadoura",
-    name: "Praia da Aguçadoura / Estela",
-    type: "allowed",
-    tabuaUrl: "/Portugal/Porto/Povoa-de-Varzim/",
-    coordinates: [
-      [41.440, -8.790],
-      [41.440, -8.775],
-      [41.420, -8.775],
-      [41.420, -8.790],
-    ],
-    description: "Extenso areal excelente para a prática de surfcasting (robalo, sargo).",
-  },
-  {
-    id: "zp2",
-    name: "Molhes da Ria de Aveiro",
-    type: "allowed",
-    tabuaUrl: "/Portugal/Aveiro/Aveiro/",
-    coordinates: [
-      [40.645, -8.760],
-      [40.645, -8.740],
-      [40.635, -8.740],
-      [40.635, -8.760],
-    ],
-    description: "Zona popular de pesca costeira. Bom para douradas e robalos.",
-  },
-  {
-    id: "zp3",
-    name: "Costa de Peniche",
-    type: "allowed",
-    tabuaUrl: "/Portugal/Leiria/Peniche/",
-    coordinates: [
-      [39.38, -9.42],
-      [39.38, -9.35],
-      [39.3, -9.35],
-      [39.3, -9.42],
-    ],
-    description: "Zona fora da área de proteção, ideal para pesca desportiva embarcada e apeada.",
-  },
-  {
-    id: "zp4",
-    name: "Cabo Espichel",
-    type: "allowed",
-    tabuaUrl: "/Portugal/Setubal/Sesimbra/",
-    coordinates: [
-      [38.42, -9.23],
-      [38.42, -9.20],
-      [38.40, -9.20],
-      [38.40, -9.23],
-    ],
-    description: "Pesqueiro icónico em falésia, exigente mas com grande potencial para peixe graúdo.",
-  },
-  {
-    id: "zp5",
-    name: "Costa Vicentina (Amoreira)",
-    type: "allowed",
-    tabuaUrl: "/Portugal/Faro/Sagres/",
-    coordinates: [
-      [37.36, -8.86],
-      [37.36, -8.84],
-      [37.32, -8.84],
-      [37.32, -8.86],
-    ],
-    description: "Zona permitida de grande beleza natural, muito procurada para surfcasting.",
-  },
-  {
-    id: "zp6",
-    name: "Ponta da Piedade (Lagos)",
-    type: "allowed",
-    tabuaUrl: "/Portugal/Faro/Lagos/",
-    coordinates: [
-      [37.09, -8.68],
-      [37.09, -8.66],
-      [37.07, -8.66],
-      [37.07, -8.68],
-    ],
-    description: "Zona mista de pedra e areia. Excelente para pesca embarcada costeira e spinning.",
-  },
-];
+// Constants & Components
+import { ZONES } from "./constants/zones";
+import WeatherWidget from "./components/WeatherWidget";
+import TideWidget from "./components/TideWidget";
+import GuideTab from "./components/GuideTab";
+import LogbookTab from "./components/LogbookTab";
 
 function App() {
   const [selectedZone, setSelectedZone] = useState(null);
-  const [activeTab, setActiveTab] = useState("map"); // 'map' or 'info'
+  const [activeTab, setActiveTab] = useState("map"); // 'map', 'info', 'scale', 'book'
+  
   const [tideData, setTideData] = useState({
     loading: true,
     data: null,
     error: null,
   });
+  
   const [weatherData, setWeatherData] = useState({
     loading: true,
     data: null,
     error: null,
   });
+  
   const [probability, setProbability] = useState(0);
-
-  // Logbook State
-  const [logs, setLogs] = useState(() => {
-    const saved = localStorage.getItem("fishing_logs");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [newLog, setNewLog] = useState({ species: "", bait: "", note: "" });
-
-  const handleAddLog = () => {
-    if (!newLog.species) return;
-    const log = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString(),
-      zone: selectedZone ? selectedZone.name : "Local Desconhecido",
-      ...newLog
-    };
-    const updated = [log, ...logs];
-    setLogs(updated);
-    localStorage.setItem("fishing_logs", JSON.stringify(updated));
-    setNewLog({ species: "", bait: "", note: "" });
-  };
-
-  const deleteLog = (id) => {
-    const updated = logs.filter(l => l.id !== id);
-    setLogs(updated);
-    localStorage.setItem("fishing_logs", JSON.stringify(updated));
-  };
 
   // Calcula a fase da lua para a Teoria Solunar
   const calculateFishingProbability = () => {
@@ -302,12 +63,12 @@ function App() {
   };
 
   // Atualiza probabilidade inicial
-  React.useEffect(() => {
+  useEffect(() => {
     setProbability(calculateFishingProbability());
   }, []);
 
   // Fetch tides & weather when selected zone changes
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchAllData = async () => {
       setTideData((prev) => ({ ...prev, loading: true }));
       setWeatherData((prev) => ({ ...prev, loading: true }));
@@ -447,72 +208,7 @@ function App() {
       </div>
 
       {/* Tides Bottom Widget */}
-      <div className="glass-panel tide-widget-bottom">
-        <div className="tide-title-vertical">
-          <h3 className="widget-title">
-            <Waves size={18} /> Tábua de Marés
-          </h3>
-          <span className="zone-name">
-            {selectedZone ? selectedZone.name : "Vila do Conde"}
-          </span>
-        </div>
-
-        <div className="tide-horizontal-info">
-          {tideData.loading ? (
-            <div style={{ color: "var(--text-secondary)" }}>
-              A carregar dados do tabuademares.com...
-            </div>
-          ) : tideData.error ? (
-            <div style={{ color: "var(--status-bad)" }}>{tideData.error}</div>
-          ) : (
-            <>
-              {tideData.data.preia1 && (
-                <div className="tide-item high">
-                  <span>Preia-mar</span>
-                  <strong>{tideData.data.preia1}</strong>
-                </div>
-              )}
-              {tideData.data.baixa1 && (
-                <div className="tide-item low">
-                  <span>Baixa-mar</span>
-                  <strong>{tideData.data.baixa1}</strong>
-                </div>
-              )}
-              {tideData.data.preia2 && (
-                <div className="tide-item high">
-                  <span>Preia-mar</span>
-                  <strong>{tideData.data.preia2}</strong>
-                </div>
-              )}
-              {tideData.data.baixa2 && (
-                <div className="tide-item low">
-                  <span>Baixa-mar</span>
-                  <strong>{tideData.data.baixa2}</strong>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-        {!tideData.loading && !tideData.error && (
-          <a
-            href={`https://www.tideschart.com${selectedZone ? selectedZone.tabuaUrl : "/Portugal/Porto/Vila-do-Conde/"}`}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              fontSize: "0.8rem",
-              color: "var(--accent-blue)",
-              textDecoration: "none",
-              marginLeft: "auto",
-              alignSelf: "flex-end",
-              position: "absolute",
-              right: "16px",
-              bottom: "16px",
-            }}
-          >
-            Fonte
-          </a>
-        )}
-      </div>
+      <TideWidget tideData={tideData} selectedZone={selectedZone} />
 
       {/* UI Overlay */}
       <div className="overlay-container">
@@ -568,52 +264,7 @@ function App() {
 
         {/* Right Sidebar */}
         <div className="sidebar-right">
-          {/* Weather Widget */}
-          <div className="glass-panel widget">
-            <div className="widget-title">
-              <Wind size={18} />
-              Condições Atmosféricas
-            </div>
-            {weatherData.loading ? (
-              <div style={{ color: "var(--text-secondary)", textAlign: "center", padding: "10px" }}>A carregar dados...</div>
-            ) : weatherData.error ? (
-              <div style={{ color: "var(--status-bad)", textAlign: "center", padding: "10px" }}>{weatherData.error}</div>
-            ) : weatherData.data ? (
-              <>
-                <div className="weather-stat">
-                  <div className="stat-left">
-                    <Wind className="stat-icon" size={20} />
-                    <span className="stat-label">Vento</span>
-                  </div>
-                  <span className="stat-value">{weatherData.data.windKnots} nós ({weatherData.data.windDir})</span>
-                </div>
-
-                <div className="weather-stat">
-                  <div className="stat-left">
-                    <Waves className="stat-icon" size={20} />
-                    <span className="stat-label">Ondulação</span>
-                  </div>
-                  <span className="stat-value">{weatherData.data.waveHeight}m</span>
-                </div>
-
-                <div className="weather-stat">
-                  <div className="stat-left">
-                    <Thermometer className="stat-icon" size={20} />
-                    <span className="stat-label">Temp. Ar</span>
-                  </div>
-                  <span className="stat-value">{weatherData.data.temp}°C</span>
-                </div>
-
-                <div className="weather-stat">
-                  <div className="stat-left">
-                    <svg className="stat-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
-                    <span className="stat-label">Temp. Água</span>
-                  </div>
-                  <span className="stat-value">{weatherData.data.waterTemp}°C</span>
-                </div>
-              </>
-            ) : null}
-          </div>
+          <WeatherWidget weatherData={weatherData} />
 
           {selectedZone && (
             <div
@@ -673,91 +324,11 @@ function App() {
       </div>
 
       {/* Guide Tab Content */}
-      <div className="content-container" style={{ display: activeTab === 'scale' ? 'block' : 'none', position: 'absolute', top: '70px', zIndex: 5 }}>
-        <h1 className="ios-large-title">Tamanhos Mínimos</h1>
-        <p style={{color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20}}>Consulte sempre a legislação em vigor. Medida da ponta do focinho à extremidade da barbatana caudal.</p>
-        
-        <div className="scale-item">
-          <span className="scale-name">Robalo (Dicentrarchus labrax)</span>
-          <span className="scale-size">36 cm</span>
-        </div>
-        <div className="scale-item">
-          <span className="scale-name">Sargo (Diplodus sargus)</span>
-          <span className="scale-size">15 cm</span>
-        </div>
-        <div className="scale-item">
-          <span className="scale-name">Dourada (Sparus aurata)</span>
-          <span className="scale-size">19 cm</span>
-        </div>
-        <div className="scale-item">
-          <span className="scale-name">Polvo (Octopus vulgaris)</span>
-          <span className="scale-size">750 g</span>
-        </div>
-        <div className="scale-item">
-          <span className="scale-name">Choco (Sepia officinalis)</span>
-          <span className="scale-size">10 cm</span>
-        </div>
-        <div className="scale-item">
-          <span className="scale-name">Linguado (Solea solea)</span>
-          <span className="scale-size">24 cm</span>
-        </div>
-      </div>
+      <GuideTab active={activeTab === 'scale'} />
 
       {/* Logbook Tab Content */}
-      <div className="content-container" style={{ display: activeTab === 'book' ? 'block' : 'none', position: 'absolute', top: '70px', zIndex: 5 }}>
-        <h1 className="ios-large-title">Diário de Pesca</h1>
-        <p style={{color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20}}>Registe as suas capturas localmente no dispositivo.</p>
-        
-        <div style={{background: 'var(--bg-secondary)', padding: 16, borderRadius: 16, marginBottom: 20}}>
-          <input 
-            className="form-input" 
-            placeholder="Espécie (ex: Robalo)" 
-            value={newLog.species}
-            onChange={(e) => setNewLog({...newLog, species: e.target.value})}
-          />
-          <input 
-            className="form-input" 
-            placeholder="Isco utilizado (ex: Casulo)" 
-            value={newLog.bait}
-            onChange={(e) => setNewLog({...newLog, bait: e.target.value})}
-          />
-          <textarea 
-            className="form-input" 
-            placeholder="Notas adicionais (estado do mar, maré, etc)" 
-            rows="2"
-            value={newLog.note}
-            onChange={(e) => setNewLog({...newLog, note: e.target.value})}
-          />
-          <button className="btn-primary" onClick={handleAddLog}>
-            <Plus size={18} /> Adicionar Registo
-          </button>
-        </div>
+      <LogbookTab active={activeTab === 'book'} selectedZone={selectedZone} />
 
-        <div>
-          {logs.length === 0 ? (
-            <p style={{textAlign: 'center', color: 'var(--text-secondary)'}}>Ainda sem registos.</p>
-          ) : (
-            logs.map(log => (
-              <div key={log.id} className="log-item">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                  <div>
-                    <span className="log-date">{log.date} - {log.zone}</span>
-                    <span className="log-species">{log.species}</span>
-                    {log.bait && <span className="log-details" style={{display: 'block'}}>Isco: {log.bait}</span>}
-                    {log.note && <span className="log-details" style={{display: 'block', fontStyle: 'italic'}}>"{log.note}"</span>}
-                  </div>
-                  <button 
-                    onClick={() => deleteLog(log.id)}
-                    style={{background: 'none', border: 'none', color: 'var(--status-bad)', cursor: 'pointer', padding: 8}}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
     </div>
   );
 }
