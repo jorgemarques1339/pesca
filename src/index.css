@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Apple HIG Dark Mode Colors */
+  --bg-primary: #000000;
+  --bg-secondary: #1C1C1E;
+  --bg-panel: rgba(28, 28, 30, 0.65);
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(235, 235, 245, 0.6);
+  
+  /* Apple Accents */
+  --accent-cyan: #64D2FF;
+  --accent-blue: #0A84FF;
+  --accent-teal: #32ADE6;
+  
+  /* Apple Status Colors */
+  --status-good: #30D158;
+  --status-warning: #FF9F0A;
+  --status-bad: #FF453A;
+
+  /* Typography (SF Pro) */
+  --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  
+  /* Effects (iOS Glass) */
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --glass-blur: blur(24px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow: hidden; /* App feels like a native app */
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Map Overrides */
+.leaflet-container {
+  font-family: var(--font-main);
+  background: #0f1626 !important;
+}
+
+.leaflet-control-zoom {
+  border: var(--glass-border) !important;
+  background: var(--bg-panel) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border-bottom: var(--glass-border) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-secondary) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  border: var(--glass-border) !important;
+  color: var(--text-primary) !important;
+  border-radius: 12px !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-secondary) !important;
+}
