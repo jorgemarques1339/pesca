@@ -48,6 +48,28 @@ export default defineConfig({
                 maxAgeSeconds: 60 * 60 * 2
               },
             },
+          },
+          {
+            urlPattern: /^https:\/\/.*\.basemaps\.cartocdn\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles-base',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/tiles\.openseamap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles-seamark',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+              },
+            },
           }
         ]
       }

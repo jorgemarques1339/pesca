@@ -5,6 +5,7 @@ import {
   Polygon,
   Popup,
   SVGOverlay,
+  Marker,
 } from "react-leaflet";
 import {
   Anchor,
@@ -13,7 +14,9 @@ import {
   Info,
   LayoutList,
   BookOpen,
-  Scale
+  Scale,
+  MapPin,
+  Layers
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./App.css";
@@ -24,11 +27,20 @@ import WeatherWidget from "./components/WeatherWidget";
 import TideWidget from "./components/TideWidget";
 import GuideTab from "./components/GuideTab";
 import LogbookTab from "./components/LogbookTab";
+import MapEventsHandler from "./components/MapEventsHandler";
 
 function App() {
   const [selectedZone, setSelectedZone] = useState(null);
   const [activeTab, setActiveTab] = useState("map"); // 'map', 'info', 'scale', 'book'
   
+  // Waypoint & Layers State
+  const [isWaypointMode, setIsWaypointMode] = useState(false);
+  const [showMarineLayer, setShowMarineLayer] = useState(false);
+  const [waypoints, setWaypoints] = useState(() => {
+    const saved = localStorage.getItem("fishing_waypoints");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [tideData, setTideData] = useState({
     loading: true,
     data: null,
@@ -49,10 +61,8 @@ function App() {
     const knownNewMoon = new Date('2024-01-11T11:57:00Z').getTime();
     const diff = Date.now() - knownNewMoon;
     const phase = (diff % LUNAR_MONTH) / LUNAR_MONTH; // 0 to 1
-    // Picos de atividade (Full Moon = 0.5, New Moon = 0 ou 1)
     const wave = Math.cos(phase * Math.PI * 4); // varia entre -1 e 1
     const normalized = (wave + 1) / 2; // varia entre 0 e 1
-    // Base 45%, Lua dá até +50% (Max 95%)
     return Math.round(45 + (normalized * 50));
   };
 
@@ -62,23 +72,19 @@ function App() {
     return arr[(val % 16)];
   };
 
-  // Atualiza probabilidade inicial
   useEffect(() => {
     setProbability(calculateFishingProbability());
   }, []);
 
-  // Fetch tides & weather when selected zone changes
   useEffect(() => {
     const fetchAllData = async () => {
       setTideData((prev) => ({ ...prev, loading: true }));
       setWeatherData((prev) => ({ ...prev, loading: true }));
 
-      // Se não houver zona selecionada, usa o Porto (centro geográfico da costa norte)
       const lat = selectedZone ? selectedZone.coordinates[0][0] : 41.15;
       const lon = selectedZone ? selectedZone.coordinates[0][1] : -8.61;
 
       try {
-        // Fetch Marés
         const urlPath = selectedZone
           ? selectedZone.tabuaUrl
           : "/Portugal/Porto/Vila-do-Conde/";
@@ -92,10 +98,7 @@ function App() {
         if (highTides.length > 0 || lowTides.length > 0) {
           setTideData({
             loading: false,
-            data: { 
-              preia1: highTides[0], preia2: highTides[1], 
-              baixa1: lowTides[0], baixa2: lowTides[1] 
-            },
+            data: { preia1: highTides[0], preia2: highTides[1], baixa1: lowTides[0], baixa2: lowTides[1] },
             error: null,
           });
         } else {
@@ -106,7 +109,6 @@ function App() {
       }
 
       try {
-        // Fetch Meteorologia e Mar (Open-Meteo)
         const [weatherRes, marineRes] = await Promise.all([
           fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m`),
           fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,sea_surface_temperature`)
@@ -115,7 +117,6 @@ function App() {
         const weatherJson = await weatherRes.json();
         const marineJson = await marineRes.json();
 
-        // km/h para nós
         const windKnots = Math.round(weatherJson.current.wind_speed_10m * 0.539957);
         const windDir = getWindCardinal(weatherJson.current.wind_direction_10m);
 
@@ -138,32 +139,76 @@ function App() {
     fetchAllData();
   }, [selectedZone]);
 
-  // Portugal center coordinates
+  const handleMapClick = (latlng) => {
+    if (!isWaypointMode) return;
+    
+    const name = prompt("Nome do Pesqueiro / Waypoint:");
+    if (name) {
+      const newWaypoint = {
+        id: Date.now(),
+        name,
+        lat: latlng.lat,
+        lng: latlng.lng,
+      };
+      const updatedWaypoints = [...waypoints, newWaypoint];
+      setWaypoints(updatedWaypoints);
+      localStorage.setItem("fishing_waypoints", JSON.stringify(updatedWaypoints));
+    }
+    setIsWaypointMode(false); // desativa o modo após adicionar
+  };
+
   const center = [39.5, -8.0];
 
   return (
     <div className={`app-container tab-${activeTab}`}>
-      {/* Mobile Header (Only visible on mobile info tab) */}
+      {/* Mobile Header */}
       <div className="mobile-header">
         <Fish className="brand-icon" size={24} />
         <span className="brand-title">Pesca Lúdica PT</span>
       </div>
 
+      {/* Floating Action Buttons for Map */}
+      <div className="map-fab-container">
+        <button 
+          className={`fab ${showMarineLayer ? 'active' : ''}`}
+          onClick={() => setShowMarineLayer(!showMarineLayer)}
+          title="Alternar Cartas Náuticas"
+        >
+          <Layers size={20} />
+        </button>
+        <button 
+          className={`fab ${isWaypointMode ? 'active pulse' : ''}`}
+          onClick={() => setIsWaypointMode(!isWaypointMode)}
+          title="Adicionar Waypoint"
+        >
+          <MapPin size={20} />
+        </button>
+      </div>
+
       {/* Background Map */}
-      <div className="map-container">
+      <div className="map-container" style={{ cursor: isWaypointMode ? 'crosshair' : 'grab' }}>
         <MapContainer
           center={center}
           zoom={7}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
         >
-          {/* Using a dark ocean themed tile layer */}
+          {/* Tile Layer Base */}
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            attribution='&copy; OpenStreetMap &copy; CARTO'
             url="https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png"
           />
 
-          {/* Animated Waves Overlay (West of Portugal Coast) */}
+          {/* Marine Layer (OpenSeaMap) */}
+          {showMarineLayer && (
+            <TileLayer
+              attribution='&copy; OpenSeaMap contributors'
+              url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+            />
+          )}
+
+          <MapEventsHandler isWaypointMode={isWaypointMode} onMapClick={handleMapClick} />
+
           <SVGOverlay bounds={[[42.5, -12], [36.5, -9]]}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
               <g style={{ transformOrigin: 'center' }}>
@@ -187,40 +232,58 @@ function App() {
               }}
               eventHandlers={{
                 click: () => {
-                  setSelectedZone(zone);
-                  setActiveTab("info"); // Auto-switch to info tab on mobile when zone selected
+                  if (!isWaypointMode) {
+                    setSelectedZone(zone);
+                    setActiveTab("info");
+                  }
                 },
               }}
             >
               <Popup>
                 <div style={{ padding: "4px" }}>
-                  <h3 style={{ margin: "0 0 8px 0", fontSize: "16px" }}>
-                    {zone.name}
-                  </h3>
-                  <p style={{ margin: 0, fontSize: "14px" }}>
-                    {zone.description}
-                  </p>
+                  <h3 style={{ margin: "0 0 8px 0", fontSize: "16px" }}>{zone.name}</h3>
+                  <p style={{ margin: 0, fontSize: "14px" }}>{zone.description}</p>
                 </div>
               </Popup>
             </Polygon>
           ))}
+
+          {/* User Waypoints */}
+          {waypoints.map((wp) => (
+            <Marker key={wp.id} position={[wp.lat, wp.lng]}>
+              <Popup>
+                <div style={{ padding: "4px", textAlign: "center" }}>
+                  <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", color: "var(--accent-yellow)" }}>
+                    <MapPin size={16} style={{ verticalAlign: 'middle', marginRight: 4 }}/>
+                    {wp.name}
+                  </h3>
+                  <button 
+                    onClick={() => {
+                      const updated = waypoints.filter(w => w.id !== wp.id);
+                      setWaypoints(updated);
+                      localStorage.setItem("fishing_waypoints", JSON.stringify(updated));
+                    }}
+                    style={{ background: 'none', border: '1px solid var(--status-bad)', color: 'var(--status-bad)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer' }}
+                  >
+                    Remover
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
         </MapContainer>
       </div>
 
-      {/* Tides Bottom Widget */}
       <TideWidget tideData={tideData} selectedZone={selectedZone} />
 
       {/* UI Overlay */}
       <div className="overlay-container">
-        {/* Left Sidebar */}
         <div className="sidebar-left">
-          {/* Branding (Hidden on mobile, replaced by mobile-header) */}
           <div className="glass-panel brand-header desktop-only">
             <Fish className="brand-icon" size={32} />
             <span className="brand-title">Pesca Lúdica PT</span>
           </div>
 
-          {/* Probability Score */}
           <div className="glass-panel widget">
             <div className="widget-title">
               <Anchor size={18} />
@@ -245,7 +308,6 @@ function App() {
             </div>
           </div>
 
-          {/* Legend */}
           <div className="glass-panel widget desktop-only">
             <div className="widget-title">
               <MapIcon size={18} />
@@ -262,7 +324,6 @@ function App() {
           </div>
         </div>
 
-        {/* Right Sidebar */}
         <div className="sidebar-right">
           <WeatherWidget weatherData={weatherData} />
 
@@ -270,63 +331,36 @@ function App() {
             <div
               className="glass-panel widget"
               style={{
-                borderColor:
-                  selectedZone.type === "allowed"
-                    ? "var(--status-good)"
-                    : "var(--status-bad)",
+                borderColor: selectedZone.type === "allowed" ? "var(--status-good)" : "var(--status-bad)",
               }}
             >
               <div className="widget-title">
                 <Info size={18} />
                 Zona Selecionada
               </div>
-              <p style={{ fontWeight: 600, fontSize: "1.1rem" }}>
-                {selectedZone.name}
-              </p>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-                {selectedZone.description}
-              </p>
+              <p style={{ fontWeight: 600, fontSize: "1.1rem" }}>{selectedZone.name}</p>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>{selectedZone.description}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
       <div className="mobile-nav">
-        <button
-          className={`nav-button ${activeTab === "map" ? "active" : ""}`}
-          onClick={() => setActiveTab("map")}
-        >
-          <MapIcon size={24} />
-          <span>Mapa</span>
+        <button className={`nav-button ${activeTab === "map" ? "active" : ""}`} onClick={() => setActiveTab("map")}>
+          <MapIcon size={24} /><span>Mapa</span>
         </button>
-        <button
-          className={`nav-button ${activeTab === "info" ? "active" : ""}`}
-          onClick={() => setActiveTab("info")}
-        >
-          <LayoutList size={24} />
-          <span>Info</span>
+        <button className={`nav-button ${activeTab === "info" ? "active" : ""}`} onClick={() => setActiveTab("info")}>
+          <LayoutList size={24} /><span>Info</span>
         </button>
-        <button
-          className={`nav-button ${activeTab === "scale" ? "active" : ""}`}
-          onClick={() => setActiveTab("scale")}
-        >
-          <Scale size={24} />
-          <span>Guia</span>
+        <button className={`nav-button ${activeTab === "scale" ? "active" : ""}`} onClick={() => setActiveTab("scale")}>
+          <Scale size={24} /><span>Guia</span>
         </button>
-        <button
-          className={`nav-button ${activeTab === "book" ? "active" : ""}`}
-          onClick={() => setActiveTab("book")}
-        >
-          <BookOpen size={24} />
-          <span>Diário</span>
+        <button className={`nav-button ${activeTab === "book" ? "active" : ""}`} onClick={() => setActiveTab("book")}>
+          <BookOpen size={24} /><span>Diário</span>
         </button>
       </div>
 
-      {/* Guide Tab Content */}
       <GuideTab active={activeTab === 'scale'} />
-
-      {/* Logbook Tab Content */}
       <LogbookTab active={activeTab === 'book'} selectedZone={selectedZone} />
 
     </div>
