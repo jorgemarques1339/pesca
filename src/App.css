@@ -509,22 +509,20 @@
   .map-fab-container { right: 16px; top: 80px; }
 
   /* Tab Behavior for Mobile */
-  .tab-map .overlay-container, .tab-map .mobile-header { display: none; }
+  .tab-map .mobile-header { display: none; }
   .tab-map .map-container { height: calc(100vh - 70px); }
   
-  .tab-info .map-container { display: none; }
-  .tab-info .overlay-container {
-    position: relative;
+  .tab-map .overlay-container {
+    display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    pointer-events: auto;
-    background: var(--bg-primary);
     padding: 16px;
-    gap: 16px;
-    height: calc(100vh - 140px);
+    padding-top: 50px;
+    pointer-events: none;
   }
-  .sidebar-left, .sidebar-right { width: 100%; height: auto; }
-
+  .tab-map .sidebar-left { display: none; }
+  .tab-map .sidebar-right { width: 100%; height: auto; pointer-events: auto; }
+  .tab-map .sidebar-right > .widget:not(:first-child) { display: none; }
+  
   .tab-book .tide-widget-bottom, .tab-scale .tide-widget-bottom, .tab-community .tide-widget-bottom { display: none; }
   
   .tab-book .map-container, .tab-scale .map-container, .tab-community .map-container,

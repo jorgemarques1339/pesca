@@ -243,7 +243,6 @@ function App() {
                 click: () => {
                   if (!isWaypointMode) {
                     setSelectedZone(zone);
-                    setActiveTab("info");
                   }
                 },
               }}
@@ -286,80 +285,15 @@ function App() {
       <TideWidget tideData={tideData} selectedZone={selectedZone} />
 
       {/* UI Overlay */}
-      <div className="overlay-container">
-        <div className="sidebar-left">
-          <div className="glass-panel brand-header desktop-only">
-            <Fish className="brand-icon" size={32} />
-            <span className="brand-title">Pesca Lúdica PT</span>
-          </div>
-
-          <div className="glass-panel widget">
-            <div className="widget-title">
-              <Anchor size={18} />
-              Probabilidade de Pesca (Solunar)
-            </div>
-            <div className="probability-score">
-              <div 
-                className="score-circle"
-                style={{
-                  color: probability >= 75 ? "var(--status-good)" : probability >= 50 ? "var(--accent-yellow)" : "var(--status-bad)",
-                  borderColor: probability >= 75 ? "var(--status-good)" : probability >= 50 ? "var(--accent-yellow)" : "var(--status-bad)"
-                }}
-              >{probability}%</div>
-              <span 
-                className="score-label"
-                style={{
-                  color: probability >= 75 ? "var(--status-good)" : probability >= 50 ? "var(--accent-yellow)" : "var(--status-bad)",
-                }}
-              >
-                {probability >= 75 ? "Condições Ideais" : probability >= 50 ? "Condições Moderadas" : "Atividade Baixa"}
-              </span>
-            </div>
-          </div>
-
-          <div className="glass-panel widget desktop-only">
-            <div className="widget-title">
-              <MapIcon size={18} />
-              Legenda do Mapa
-            </div>
-            <div className="legend-item">
-              <div className="legend-color color-allowed"></div>
-              <span>Zona de Pesca Permitida</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-color color-forbidden"></div>
-              <span>Zona Proibida / Protegida</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="sidebar-right">
+      <div className="overlay-container" style={{ pointerEvents: 'none' }}>
+        <div className="sidebar-right" style={{ pointerEvents: 'auto' }}>
           <WeatherWidget weatherData={weatherData} />
-
-          {selectedZone && (
-            <div
-              className="glass-panel widget"
-              style={{
-                borderColor: selectedZone.type === "allowed" ? "var(--status-good)" : "var(--status-bad)",
-              }}
-            >
-              <div className="widget-title">
-                <Info size={18} />
-                Zona Selecionada
-              </div>
-              <p style={{ fontWeight: 600, fontSize: "1.1rem" }}>{selectedZone.name}</p>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>{selectedZone.description}</p>
-            </div>
-          )}
         </div>
       </div>
 
       <div className="mobile-nav">
         <button className={`nav-button ${activeTab === "map" ? "active" : ""}`} onClick={() => setActiveTab("map")}>
           <MapIcon size={24} /><span>Mapa</span>
-        </button>
-        <button className={`nav-button ${activeTab === "info" ? "active" : ""}`} onClick={() => setActiveTab("info")}>
-          <LayoutList size={24} /><span>Info</span>
         </button>
         <button className={`nav-button ${activeTab === "scale" ? "active" : ""}`} onClick={() => setActiveTab("scale")}>
           <Scale size={24} /><span>Guia</span>
