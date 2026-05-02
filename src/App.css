@@ -520,7 +520,7 @@
     pointer-events: none;
   }
   .tab-map .sidebar-left { display: none; }
-  .tab-map .sidebar-right { width: 100%; height: auto; pointer-events: auto; }
+  .tab-map .sidebar-right { width: 100%; height: auto; pointer-events: none; }
   .tab-map .sidebar-right > .widget:not(:first-child) { display: none; }
   
   .tab-book .tide-widget-bottom, .tab-scale .tide-widget-bottom, .tab-community .tide-widget-bottom { display: none; }
@@ -577,4 +577,39 @@
     font-size: 0.85rem;
   }
   .tide-widget-bottom a { display: none; }
+
+  /* Compact Weather Widget for Mobile Map */
+  .weather-widget-container {
+    flex-direction: row;
+    padding: 8px 12px;
+    border-radius: 24px;
+    gap: 12px;
+    justify-content: center;
+    background: rgba(15, 22, 38, 0.85);
+    backdrop-filter: blur(16px);
+    position: absolute;
+    top: 16px; /* Near top */
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 95vw;
+    z-index: 2000;
+    pointer-events: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .weather-widget-container .widget-title { display: none; }
+  .weather-widget-container .weather-stat {
+    padding: 0;
+    background: none;
+    border-radius: 0;
+    flex-direction: row;
+    gap: 4px;
+    transition: none;
+  }
+  .weather-widget-container .weather-stat:hover { background: none; }
+  .weather-widget-container .stat-label { display: none; }
+  .weather-widget-container .stat-left { gap: 4px; margin: 0; }
+  .weather-widget-container .stat-icon { width: 14px; height: 14px; color: var(--accent-cyan); }
+  .weather-widget-container .stat-value { font-size: 0.8rem; font-weight: 500; color: #fff; }
 }

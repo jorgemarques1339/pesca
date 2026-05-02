@@ -3,7 +3,7 @@ import { Wind, Waves, Thermometer } from 'lucide-react';
 
 const WeatherWidget = ({ weatherData }) => {
   return (
-    <div className="glass-panel widget">
+    <div className="glass-panel widget weather-widget-container">
       <div className="widget-title">
         <Wind size={18} />
         Condições Atmosféricas
