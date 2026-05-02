@@ -170,22 +170,24 @@ function App() {
       </div>
 
       {/* Floating Action Buttons for Map */}
-      <div className="map-fab-container">
-        <button 
-          className={`fab ${showMarineLayer ? 'active' : ''}`}
-          onClick={() => setShowMarineLayer(!showMarineLayer)}
-          title="Alternar Cartas Náuticas"
-        >
-          <Layers size={20} />
-        </button>
-        <button 
-          className={`fab ${isWaypointMode ? 'active pulse' : ''}`}
-          onClick={() => setIsWaypointMode(!isWaypointMode)}
-          title="Adicionar Waypoint"
-        >
-          <MapPin size={20} />
-        </button>
-      </div>
+      {activeTab === "map" && (
+        <div className="map-fab-container">
+          <button 
+            className={`fab ${showMarineLayer ? 'active' : ''}`}
+            onClick={() => setShowMarineLayer(!showMarineLayer)}
+            title="Alternar Cartas Náuticas"
+          >
+            <Layers size={20} />
+          </button>
+          <button 
+            className={`fab ${isWaypointMode ? 'active pulse' : ''}`}
+            onClick={() => setIsWaypointMode(!isWaypointMode)}
+            title="Adicionar Waypoint"
+          >
+            <MapPin size={20} />
+          </button>
+        </div>
+      )}
 
       {/* Background Map */}
       <div className="map-container" style={{ cursor: isWaypointMode ? 'crosshair' : 'grab' }}>
@@ -199,6 +201,11 @@ function App() {
           <TileLayer
             attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          />
+          
+          {/* Labels Layer (Boundaries and Places) */}
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
           />
 
           {/* Marine Layer (OpenSeaMap) */}
