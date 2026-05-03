@@ -280,15 +280,43 @@ function App() {
         </div>
       </div>
 
+      {/* Global Data Source Indicator */}
+      {weatherData.data && (
+        <div style={{ 
+          position: 'fixed', 
+          bottom: '80px', // Just above the mobile-nav
+          left: 0, 
+          right: 0, 
+          display: 'flex', 
+          justifyContent: 'center', 
+          pointerEvents: 'none',
+          zIndex: 1000
+        }}>
+          <div style={{ 
+            background: 'rgba(0,0,0,0.5)', 
+            backdropFilter: 'blur(4px)',
+            padding: '4px 12px', 
+            borderRadius: '20px',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <span style={{ 
+              fontSize: '0.55rem', 
+              color: 'var(--text-secondary)', 
+              letterSpacing: 1, 
+              textTransform: 'uppercase' 
+            }}>
+              Fonte: <strong style={{ color: weatherData.data.source === 'Windy' ? '#00f2ff' : '#aaa' }}>{weatherData.data.source}</strong>
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="mobile-nav">
         <button className={`nav-button ${activeTab === "map" ? "active" : ""}`} onClick={() => setActiveTab("map")}>
           <MapIcon size={24} /><span>Mapa</span>
         </button>
         <button className={`nav-button ${activeTab === "scale" ? "active" : ""}`} onClick={() => setActiveTab("scale")}>
           <Ruler size={24} /><span>Guia</span>
-        </button>
-        <button className={`nav-button ${activeTab === "elite" ? "active" : ""}`} onClick={() => setActiveTab("elite")}>
-          <Trophy size={24} /><span>Elite</span>
         </button>
         <button className={`nav-button ${activeTab === "community" ? "active" : ""}`} onClick={() => setActiveTab("community")}>
           <Users size={24} /><span>Social</span>
@@ -309,8 +337,7 @@ function App() {
         onAddLog={handleAddLog}
         onDeleteLog={handleDeleteLog}
       />
-      <EliteTab active={activeTab === 'elite'} logs={logs} />
-      <CommunityTab active={activeTab === 'community'} />
+      <CommunityTab active={activeTab === 'community'} logs={logs} />
 
     </div>
   );

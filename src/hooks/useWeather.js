@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { fetchWindyForecast } from "../utils/windyService";
 
 export function useWeather(lat, lon) {
   const [weatherData, setWeatherData] = useState({
@@ -18,17 +19,40 @@ export function useWeather(lat, lon) {
       setWeatherData((prev) => ({ ...prev, loading: true, error: null }));
       
       try {
-        const [weatherRes, marineRes] = await Promise.all([
-          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m`),
-          fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,sea_surface_temperature`)
-        ]);
+        // Obter dados marinhos do Open-Meteo (para Sea Temperature que a Windy Point API não fornece sempre)
+        const marineRes = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=sea_surface_temperature`);
+        const marineJson = await marineRes.json();
+        const waterTemp = marineJson.current.sea_surface_temperature ? marineJson.current.sea_surface_temperature.toFixed(1) : "-";
+
+        // Tentativa 1: Windy API (Alta Precisão para Vento e Ar)
+        try {
+          const windyData = await fetchWindyForecast(lat, lon);
+          setWeatherData({
+            loading: false,
+            data: {
+              temp: windyData.temp,
+              windKnots: windyData.windSpeed,
+              windDir: getWindCardinal(windyData.windDir),
+              waveHeight: windyData.waveHeight,
+              waterTemp: waterTemp, // Usamos o do Open-Meteo ou Windy se disponível
+              source: 'Windy'
+            },
+            error: null
+          });
+          return; 
+        } catch (windyErr) {
+          console.warn("Windy API falhou, a usar Open-Meteo total...");
+        }
+
+        // Tentativa 2: Open-Meteo Total (Fallback)
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m`);
 
         if (!weatherRes.ok || !marineRes.ok) {
           throw new Error("Erro na resposta das APIs meteorológicas");
         }
 
         const weatherJson = await weatherRes.json();
-        const marineJson = await marineRes.json();
+        // marineJson já foi declarado e preenchido acima
 
         const windKnots = Math.round(weatherJson.current.wind_speed_10m * 0.539957);
         const windDir = getWindCardinal(weatherJson.current.wind_direction_10m);
@@ -40,7 +64,8 @@ export function useWeather(lat, lon) {
             windKnots,
             windDir,
             waveHeight: marineJson.current.wave_height ? marineJson.current.wave_height.toFixed(1) : "-",
-            waterTemp: marineJson.current.sea_surface_temperature ? marineJson.current.sea_surface_temperature.toFixed(1) : "-"
+            waterTemp: marineJson.current.sea_surface_temperature ? marineJson.current.sea_surface_temperature.toFixed(1) : "-",
+            source: 'Open-Meteo'
           },
           error: null
         });

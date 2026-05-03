@@ -9,13 +9,13 @@ const MOCK_LEADERBOARD = [
   { rank: 4, user: "Rui Vara", points: 1200, catches: 5 },
 ];
 
-const EliteTab = ({ active, logs }) => {
+const EliteTab = ({ active, logs, embedded }) => {
   const unlocked = getUnlockedAchievements(logs);
   const progress = (unlocked.length / ACHIEVEMENTS.length) * 100;
 
   return (
-    <div className="content-container" style={{ display: active ? 'block' : 'none' }}>
-      <h1 className="ios-large-title">Elite Pescador</h1>
+    <div className={embedded ? "" : "content-container"} style={{ display: active ? 'block' : 'none', padding: embedded ? 0 : undefined }}>
+      {!embedded && <h1 className="ios-large-title">Elite Pescador</h1>}
       
       {/* Active Tournament Section */}
       <div className="glass-panel" style={{ padding: 20, marginBottom: 24, border: '1px solid rgba(255, 215, 0, 0.3)' }}>

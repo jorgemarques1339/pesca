@@ -561,12 +561,12 @@
   /* Content Containers (Logbook, Guide, Community) */
   .content-container {
     position: absolute !important;
-    top: 70px !important; /* Below header */
+    top: 0 !important; /* Removed fixed gap since header is not used */
     left: 0 !important;
     width: 100% !important;
     padding: 16px !important;
     padding-bottom: 140px !important; /* Space for nav */
-    height: calc(100vh - 70px) !important;
+    height: 100vh !important;
     background: var(--bg-primary);
   }
 
