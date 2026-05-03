@@ -17,6 +17,7 @@ const SPECIES_DATA = [
     technique: "Spinning, Surfcasting",
     defeso: "Nenhum (Geral)",
     k: 0.012,
+    activity: [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1], // Jan to Dec
     image: "https://images.unsplash.com/photo-1534320309096-17ce1f77021d?auto=format&fit=crop&q=80&w=400"
   },
   { 
@@ -29,6 +30,7 @@ const SPECIES_DATA = [
     technique: "Boia, Chumbadinha",
     defeso: "Fev/Mar (Zonas Protegidas)",
     k: 0.018,
+    activity: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
     image: "https://images.unsplash.com/photo-1524704654690-b56c05c78a00?auto=format&fit=crop&q=80&w=400"
   },
   { 
@@ -41,6 +43,7 @@ const SPECIES_DATA = [
     technique: "Fundo, Surfcasting",
     defeso: "Nenhum",
     k: 0.021,
+    activity: [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
     image: "https://images.unsplash.com/photo-1498654203975-e99571b0cc46?auto=format&fit=crop&q=80&w=400"
   },
   { 
@@ -53,6 +56,7 @@ const SPECIES_DATA = [
     technique: "Eging",
     defeso: "Nenhum",
     k: 0.015,
+    activity: [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1],
     image: "https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?auto=format&fit=crop&q=80&w=400"
   }
 ];
@@ -74,6 +78,7 @@ const GuideTab = ({ active }) => {
 
   const subTabs = [
     { id: 'fish', label: 'Peixes', icon: Fish, color: 'var(--accent-blue)' },
+    { id: 'simulator', label: 'Simulador', icon: Compass, color: 'var(--accent-teal)' },
     { id: 'rules', label: 'Regras', icon: Gavel, color: 'var(--status-good)' },
     { id: 'knots', label: 'Nós', icon: Zap, color: 'var(--accent-orange)' },
     { id: 'ruler', label: 'Régua', icon: Ruler, color: 'var(--accent-cyan)' }
@@ -81,12 +86,12 @@ const GuideTab = ({ active }) => {
 
   const renderFishTab = () => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-col gap-16">
-      {/* Weight Calculator - Modernized */}
-      <div className="premium-card bg-gradient-blue p-20">
+      {/* Bio-Calculator Section */}
+      <div className="premium-card bg-gradient-blue p-20 shadow-glow">
         <div className="flex-between mb-20">
           <div className="flex-center gap-12">
             <div className="icon-box-white">
-              <Calculator size={22} className="text-blue" />
+              <Calculator size={22} color="var(--accent-blue)" />
             </div>
             <div>
               <h3 className="m-0 text-white text-lg">Bio-Calculadora</h3>
@@ -122,9 +127,9 @@ const GuideTab = ({ active }) => {
         {SPECIES_DATA.map((fish, idx) => (
           <motion.div 
             key={fish.name} 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: idx * 0.1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
             className={`fish-card-premium ${selectedFish?.name === fish.name ? 'expanded' : ''}`}
             onClick={() => setSelectedFish(selectedFish?.name === fish.name ? null : fish)}
           >
@@ -170,7 +175,24 @@ const GuideTab = ({ active }) => {
                       </div>
                     </div>
                   </div>
-                  <div className="defeso-info">
+
+                  {/* Activity Calendar */}
+                  <div className="activity-calendar-container mt-16">
+                    <label className="text-2xs font-bold text-secondary uppercase tracking-widest mb-8 block">Calendário de Atividade</label>
+                    <div className="months-grid">
+                      {['J','F','M','A','M','J','J','A','S','O','N','D'].map((m, i) => (
+                        <div 
+                          key={i} 
+                          className={`month-pill ${fish.activity[i] ? 'active' : ''}`}
+                          title={fish.activity[i] ? 'Época Alta' : 'Época Baixa'}
+                        >
+                          {m}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="defeso-info mt-16">
                     <Info size={14} />
                     <p><strong>Status Legal:</strong> {fish.defeso}. Verifique sempre o zoneamento local no mapa.</p>
                   </div>
@@ -179,6 +201,54 @@ const GuideTab = ({ active }) => {
             </AnimatePresence>
           </motion.div>
         ))}
+      </div>
+    </motion.div>
+  );
+
+  const renderSimulatorTab = () => (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-col gap-16">
+      <div className="premium-card p-24 bg-glass border-blue">
+        <div className="flex-center gap-12 mb-20">
+          <div className="icon-box-cyan">
+            <Target size={24} className="text-cyan" />
+          </div>
+          <div>
+            <h3 className="m-0 text-lg">Sugestão de Isco & Técnica</h3>
+            <p className="m-0 text-2xs text-secondary uppercase font-bold tracking-tighter">Baseado no Alvo e Condições</p>
+          </div>
+        </div>
+
+        <div className="flex-col gap-16">
+          <div className="input-group-glass">
+            <label>QUAL É O ALVO?</label>
+            <select 
+              value={calcSpecies.name}
+              onChange={(e) => setCalcSpecies(SPECIES_DATA.find(s => s.name === e.target.value))}
+            >
+              {SPECIES_DATA.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+            </select>
+          </div>
+
+          <div className="simulation-result p-16 rounded-xl bg-black-20 border-glass">
+            <div className="flex-between mb-12">
+              <span className="text-2xs font-bold opacity-50 uppercase">Isco Recomendado</span>
+              <span className="badge-live">IDEAL</span>
+            </div>
+            <div className="flex-center gap-10">
+              <Zap size={20} className="text-orange" />
+              <span className="text-lg font-bold">{calcSpecies.bait.split(',')[0]}</span>
+            </div>
+            <p className="mt-8 text-xs text-secondary">
+              Para o **{calcSpecies.name}**, recomendamos o uso de {calcSpecies.bait}. 
+              A técnica mais produtiva será **{calcSpecies.technique}**.
+            </p>
+          </div>
+
+          <div className="info-box-glass">
+            <Info size={14} />
+            <p className="text-2xs text-secondary">A atividade biológica aumenta durante as 2h antes e depois da maré cheia.</p>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -245,15 +315,18 @@ const GuideTab = ({ active }) => {
           className="knot-card-premium"
           style={{ borderTop: `4px solid ${knot.color}` }}
         >
-          <div className="knot-icon" style={{ background: `${knot.color}20`, color: knot.color }}>
-            <Zap size={20} />
+          <div className="flex-between items-start">
+            <div className="knot-icon" style={{ background: `${knot.color}20`, color: knot.color }}>
+              <Zap size={20} />
+            </div>
+            <span className="text-2xs text-secondary uppercase font-bold tracking-wider">{knot.difficulty}</span>
           </div>
           <h4 className="m-0 mt-12 mb-4">{knot.name}</h4>
-          <span className="text-2xs text-secondary uppercase font-bold tracking-wider">{knot.difficulty}</span>
+          <p className="m-0 text-2xs text-secondary mb-12">{knot.use}</p>
           <div className="knot-steps-compact">
              {knot.steps.map((s, i) => (
                <div key={i} className="mini-step">
-                 <div className="dot"></div>
+                 <div className="step-num">{i + 1}</div>
                  <span>{s}</span>
                </div>
              ))}
@@ -329,6 +402,7 @@ const GuideTab = ({ active }) => {
           transition={{ duration: 0.2 }}
         >
           {activeSubTab === 'fish' && renderFishTab()}
+          {activeSubTab === 'simulator' && renderSimulatorTab()}
           {activeSubTab === 'rules' && renderRulesTab()}
           {activeSubTab === 'knots' && renderKnotsTab()}
           {activeSubTab === 'ruler' && renderRulerTab()}

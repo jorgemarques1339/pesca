@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Users, MapPin, Anchor, Database, Wind, Waves, ChevronLeft, ChevronRight, X, CloudRain, Search } from 'lucide-react';
+import { Layers, Users, MapPin, Anchor, Database, Wind, Waves, ChevronLeft, ChevronRight, X, CloudRain, Search, Store, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
 
@@ -12,14 +12,18 @@ const MapActionButtons = () => {
     showWindVectors, setShowWindVectors,
     showRadar, setShowRadar,
     showCommunityLayer, setShowCommunityLayer,
+    showShops, setShowShops,
     isWaypointMode, setIsWaypointMode,
     setIsOfflineModalOpen,
     requestCenterMap,
-    isSearchOpen, setIsSearchOpen
+    isSearchOpen, setIsSearchOpen,
+    isLoadingShops, userPos, fetchShops
   } = useAppContext();
 
   const layerButtons = [
     { id: 'radar', icon: CloudRain, active: showRadar, action: () => setShowRadar(!showRadar), title: "Radar de Chuva" },
+    { id: 'waypoint', icon: MapPin, active: isWaypointMode, action: () => setIsWaypointMode(!isWaypointMode), title: isWaypointMode ? "Cancelar Waypoint" : "Novo Waypoint" },
+    { id: 'community', icon: Users, active: showCommunityLayer, action: () => setShowCommunityLayer(!showCommunityLayer), title: "Comunidade (Capturas)" },
     { id: 'bathymetry', icon: Waves, active: showBathymetry, action: () => setShowBathymetry(!showBathymetry), title: "Batimetria" },
     { id: 'wind', icon: Wind, active: showWindVectors, action: () => setShowWindVectors(!showWindVectors), title: "Vento" },
     { id: 'marine', icon: Layers, active: showMarineLayer, action: () => setShowMarineLayer(!showMarineLayer), title: "Cartas Náuticas" },
@@ -39,14 +43,21 @@ const MapActionButtons = () => {
         <Anchor size={22} />
       </motion.button>
 
+      {/* Botão Loja */}
       <motion.button 
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        className={`fab waypoint-fab ${isWaypointMode ? 'active pulse' : ''}`}
-        onClick={() => setIsWaypointMode(!isWaypointMode)}
-        title="Novo Waypoint"
+        className={`fab shop-fab ${isLoadingShops ? 'pulse' : ''}`}
+        onClick={() => {
+          if (userPos) {
+            fetchShops(userPos.lat, userPos.lng);
+          } else {
+            alert("Ative a geolocalização para encontrar lojas.");
+          }
+        }}
+        title="Procurar Lojas"
       >
-        <MapPin size={22} />
+        {isLoadingShops ? <Loader2 className="animate-spin" size={22} /> : <Store size={22} />}
       </motion.button>
 
       {/* Search Toggle (Above Layers) */}

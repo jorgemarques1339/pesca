@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Medal, Target, TrendingUp, Users } from 'lucide-react';
+import { Trophy, Medal, Target, TrendingUp, Users, Clock, MessageSquare, ShieldCheck } from 'lucide-react';
 import { getUnlockedAchievements, ACHIEVEMENTS } from '../utils/achievementUtils';
 import { useAppContext } from '../context/AppContext';
 
@@ -29,20 +29,63 @@ const EliteTab = ({ active, embedded }) => {
           <span className="badge-live">LIVE</span>
         </div>
 
+        <div className="tournament-meta mb-16" style={{ display: 'flex', gap: '20px' }}>
+          <div className="meta-item">
+            <Clock size={14} color="rgba(255,255,255,0.5)" />
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>Termina em: <strong style={{ color: '#FFD700' }}>04:22:15</strong></span>
+          </div>
+          <div className="meta-item">
+            <Users size={14} color="rgba(255,255,255,0.5)" />
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>Participantes: <strong>42</strong></span>
+          </div>
+        </div>
+
+        {/* Tournament Progress Bar */}
+        <div style={{ marginBottom: 20 }}>
+          <div className="flex-between mb-8">
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.6, textTransform: 'uppercase' }}>Progresso do Torneio</span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#FFD700' }}>65%</span>
+          </div>
+          <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: '65%', height: '100%', background: 'linear-gradient(to right, #FFD700, #FFA500)', boxShadow: '0 0 10px rgba(255, 215, 0, 0.5)' }}></div>
+          </div>
+        </div>
+
         <div className="leaderboard" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {MOCK_LEADERBOARD.map((item) => (
-            <div key={item.rank} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: 12 }}>
-              <span style={{ fontSize: '1rem', fontWeight: 800, width: 24, color: item.rank <= 3 ? '#FFD700' : 'var(--text-secondary)' }}>{item.rank}</span>
+            <div key={item.rank} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 12, 
+              padding: '12px 16px', 
+              background: item.rank === 1 ? 'rgba(255,215,0,0.05)' : 'rgba(255,255,255,0.03)', 
+              borderRadius: 16,
+              border: item.rank === 1 ? '1px solid rgba(255,215,0,0.2)' : '1px solid transparent'
+            }}>
+              <span style={{ fontSize: '1.1rem', fontWeight: 900, width: 24, color: item.rank === 1 ? '#FFD700' : item.rank === 2 ? '#C0C0C0' : item.rank === 3 ? '#CD7F32' : 'var(--text-secondary)' }}>{item.rank}</span>
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>{item.user}</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>{item.catches} capturas válidas</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>{item.user}</span>
+                  {item.rank === 1 && <ShieldCheck size={12} color="#FFD700" />}
+                </div>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block' }}>{item.catches} capturas • Robalo 72cm</span>
               </div>
-              <span style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>{item.points} pts</span>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '0.9rem' }}>{item.points}</div>
+                <div style={{ fontSize: '0.6rem', opacity: 0.5, fontWeight: 700 }}>PONTOS</div>
+              </div>
             </div>
           ))}
-          <button className="btn-primary" style={{ marginTop: 8, background: 'linear-gradient(to right, #FFD700, #FFA500)', color: '#000' }}>
-            Aderir ao Torneio
-          </button>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+            <button className="btn-primary" style={{ background: 'linear-gradient(to right, #FFD700, #FFA500)', color: '#000', fontWeight: 800, border: 'none', borderRadius: '12px', padding: '12px' }}>
+              ADERIR
+            </button>
+            <button className="btn-secondary" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <MessageSquare size={16} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>CHAT</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -73,6 +116,27 @@ const EliteTab = ({ active, embedded }) => {
             </div>
           );
         })}
+      </div>
+
+      {/* Weekly Challenges Section */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: '1.3rem', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Target size={20} color="var(--accent-orange)" />
+          Desafios Semanais
+        </h2>
+        <div className="flex-col gap-12">
+          <div className="glass-panel p-16 border-orange">
+            <div className="flex-between mb-8">
+              <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>Mestre dos Sargos</span>
+              <span className="badge-gold">100 $P</span>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>Captura 3 Sargos com mais de 20cm esta semana.</p>
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+              <div style={{ width: '33%', height: '100%', background: 'var(--accent-orange)', boxShadow: '0 0 8px var(--accent-orange)' }}></div>
+            </div>
+            <span style={{ fontSize: '0.6rem', display: 'block', marginTop: '6px', opacity: 0.5 }}>1 / 3 CONCLUÍDO</span>
+          </div>
+        </div>
       </div>
 
       {/* Personal Stats Mini-Insights */}

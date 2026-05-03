@@ -7,6 +7,41 @@ import { useOrientation } from '../hooks/useOrientation';
 
 const AppContext = createContext();
 
+const FEATURED_SHOPS = [
+  {
+    id: 'featured_favais',
+    name: "Casa Favais, Lda. - Vila do Conde",
+    lat: 41.3720683,
+    lng: -8.7614646,
+    type: 'shop',
+    address: "Vila do Conde",
+    phone: "+351 252 631 384",
+    website: "https://www.casafavais.pt/",
+    isFeatured: true
+  },
+  {
+    id: 'featured_castanho',
+    name: "Castanho e Castanho - Vila do Conde",
+    lat: 41.3660863,
+    lng: -8.7600506,
+    type: 'shop',
+    address: "Vila do Conde",
+    phone: "+351 252 642 164",
+    isFeatured: true
+  },
+  {
+    id: 'featured_decathlon_matosinhos',
+    name: "Decathlon Matosinhos",
+    lat: 41.2158568,
+    lng: -8.6857626,
+    type: 'shop',
+    address: "Matosinhos",
+    phone: "+351 211 144 000",
+    website: "https://www.decathlon.pt/",
+    isFeatured: true
+  }
+];
+
 export const AppProvider = ({ children }) => {
   // Navigation & Tabs
   const [activeTab, setActiveTab] = useState('map');
@@ -25,6 +60,46 @@ export const AppProvider = ({ children }) => {
   const [shopsData, setShopsData] = useState([]);
   const [isLoadingShops, setIsLoadingShops] = useState(false);
   const [navTarget, setNavTarget] = useState(null);
+
+  // Authentication & User Profile
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("pesca_user");
+    return saved ? JSON.parse(saved) : {
+      isLoggedIn: true, // Default to true as per user request to "add my login now"
+      email: "jorgemarques1339@gmail.com",
+      name: "Jorge Marques",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jorge",
+      bio: "Pescador das Caxinas, amante do mar e da pesca desportiva.",
+      stats: {
+        catches: 42,
+        medals: 15,
+        tournaments: 3
+      }
+    };
+  });
+
+  const handleLogin = (email, password) => {
+    // Simple mock logic
+    if (email === "jorgemarques1339@gmail.com" && password === "Cax1nasCity") {
+      const userData = {
+        isLoggedIn: true,
+        email: email,
+        name: "Jorge Marques",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jorge",
+        bio: "Pescador das Caxinas, amante do mar e da pesca desportiva.",
+        stats: { catches: 42, medals: 15, tournaments: 3 }
+      };
+      setUser(userData);
+      localStorage.setItem("pesca_user", JSON.stringify(userData));
+      return true;
+    }
+    return false;
+  };
+
+  const handleLogout = () => {
+    setUser({ isLoggedIn: false });
+    localStorage.removeItem("pesca_user");
+  };
 
   // Persistence: Waypoints
   const [waypoints, setWaypoints] = useState(() => {
@@ -88,22 +163,31 @@ export const AppProvider = ({ children }) => {
 
   const fetchShops = async (lat, lon) => {
     setIsLoadingShops(true);
+    setShowShops(true); // Show the layer (it will show loading on map if we implement it)
     try {
-      // Expanded query: nwr finds Nodes, Ways, and Relations. 
-      // Includes more tags and out center for polygon centers.
-      const query = `[out:json];(nwr["shop"~"fishing|tackle|fishing_tackle"](around:20000,${lat},${lon});nwr["shop"~"sports|outdoors|wholesale"]["name"~"pesca",i](around:20000,${lat},${lon}););out center;`;
+      console.log(`[ShopSearch] Inciando busca num raio de 30km em: ${lat}, ${lon}`);
+      
+      // Broader query: fishing shops, tackle shops, or any shop with "pesca" in the name
+      const query = `[out:json][timeout:20];(nwr["shop"~"fishing|tackle"](around:30000,${lat},${lon});nwr["shop"]["name"~"pesca",i](around:30000,${lat},${lon});nwr["shop"~"sports|outdoors|hardware"]["fishing"~"yes"](around:30000,${lat},${lon}););out center;`;
       const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); 
+
       const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'PescaApp/1.0 (contact: info@pesca.pt)'
-        }
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
       });
-      const data = await response.json();
+      clearTimeout(timeoutId);
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
-      if (!data.elements) {
+      const data = await response.json();
+      console.log(`[ShopSearch] Recebidos ${data.elements?.length || 0} elementos da API.`);
+      
+      if (!data.elements || data.elements.length === 0) {
         setShopsData([]);
+        alert("Não foram encontradas lojas de pesca num raio de 30 km da sua localização. Tente novamente numa zona diferente.");
         return;
       }
 
@@ -123,15 +207,15 @@ export const AppProvider = ({ children }) => {
         };
       }).filter(shop => shop.lat && shop.lng); // Ensure we have coordinates
       
-      if (formattedShops.length === 0) {
-        alert("Não foram encontradas lojas de pesca num raio de 20 km da sua localização.");
-      }
+      // Merge with featured shops that are within range (optional, or just always show them if nearby)
+      // For now, let's always include them if they are in the results area or just add them to the list
+      const finalShops = [...FEATURED_SHOPS, ...formattedShops.filter(fs => !FEATURED_SHOPS.some(s => s.name === fs.name))];
       
-      setShopsData(formattedShops);
-      setShowShops(true);
-      requestCenterMap(15);
+      setShopsData(finalShops);
+      requestCenterMap(14);
     } catch (error) {
       console.error("Error fetching shops:", error);
+      alert("Erro ao procurar lojas. Verifique a sua ligação à internet.");
     } finally {
       setIsLoadingShops(false);
     }
@@ -155,7 +239,8 @@ export const AppProvider = ({ children }) => {
     userPos, heading, requestOrientationPermission,
     tides, solunarData, weatherData,
     mapCenterRequest, setMapCenterRequest, requestCenterMap,
-    shopsData, isLoadingShops, fetchShops
+    shopsData, isLoadingShops, fetchShops,
+    user, handleLogin, handleLogout
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

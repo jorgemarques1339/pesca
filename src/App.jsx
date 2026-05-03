@@ -3,7 +3,8 @@ import {
   Map as MapIcon,
   BookOpen,
   Users,
-  Ruler
+  Ruler,
+  User
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "leaflet/dist/leaflet.css";
@@ -12,7 +13,7 @@ import "./App.css";
 // Components
 import WeatherWidget from "./components/WeatherWidget";
 import GuideTab from "./components/GuideTab";
-import LogbookTab from "./components/LogbookTab";
+import ProfileTab from "./components/ProfileTab";
 import CommunityTab from "./components/CommunityTab";
 import OfflineModal from "./components/OfflineModal";
 import NavigationPanel from "./components/NavigationPanel";
@@ -149,15 +150,8 @@ function App() {
           >
             {activeTab === 'scale' && <GuideTab active={true} />}
             {activeTab === 'book' && (
-              <LogbookTab 
+              <ProfileTab 
                 active={true} 
-                selectedZone={selectedZone}
-                weatherData={weatherData}
-                tides={tides}
-                solunarData={solunarData}
-                logs={logs}
-                onAddLog={handleAddLog}
-                onDeleteLog={handleDeleteLog}
               />
             )}
             {activeTab === 'community' && <CommunityTab active={true} logs={logs} />}
@@ -168,8 +162,8 @@ function App() {
       {/* Mobile Navigation */}
       <div className="mobile-nav">
         {tabs.map((tab, idx) => {
-          const Icon = [MapIcon, Ruler, Users, BookOpen][idx];
-          const labels = ["Mapa", "Guia", "Social", "Diário"];
+          const Icon = [MapIcon, Ruler, Users, User][idx];
+          const labels = ["Mapa", "Guia", "Social", "Perfil"];
           return (
             <motion.button 
               key={tab}

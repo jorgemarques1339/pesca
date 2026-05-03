@@ -5,9 +5,9 @@ import { motion } from 'framer-motion';
 const WindVectorLayer = ({ weatherData }) => {
   if (!weatherData?.data) return null;
 
-  const { windDir, windKnots } = weatherData.data;
+  const { windDirDeg, windKnots } = weatherData.data;
   
-  // Create a grid of points over the Portuguese coast
+  const rotation = (windDirDeg + 180) % 360; // Adjust so arrow points WITH the wind
   const points = [];
   for (let lat = 37.0; lat <= 42.0; lat += 0.5) {
     for (let lng = -10.5; lng <= -8.5; lng += 0.5) {
@@ -24,7 +24,7 @@ const WindVectorLayer = ({ weatherData }) => {
         >
           <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
             <g style={{ 
-              transform: `rotate(${windDir}deg)`, 
+              transform: `rotate(${rotation}deg)`, 
               transformOrigin: 'center',
               opacity: Math.min(windKnots / 30, 1) // Opacity based on intensity
             }}>

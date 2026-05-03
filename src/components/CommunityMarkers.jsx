@@ -63,7 +63,20 @@ export default function CommunityMarkers({ visible, showShops }) {
             <div style={{ padding: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#fff', flex: 1 }}>{shop.name}</h3>
-                <div style={{ background: '#F19E39', padding: '4px 8px', borderRadius: '12px', fontSize: '0.7rem', color: '#fff', fontWeight: 700 }}>LOJA</div>
+                <div style={{ 
+                  background: shop.isFeatured ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : '#F19E39', 
+                  padding: '4px 8px', 
+                  borderRadius: '12px', 
+                  fontSize: '0.7rem', 
+                  color: shop.isFeatured ? '#000' : '#fff', 
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  {shop.isFeatured && <span style={{ fontSize: '0.8rem' }}>⭐</span>}
+                  {shop.isFeatured ? 'VERIFICADA' : 'LOJA'}
+                </div>
               </div>
 
               <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>

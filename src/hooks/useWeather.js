@@ -33,6 +33,7 @@ export function useWeather(lat, lon) {
               temp: windyData.temp,
               windKnots: windyData.windSpeed,
               windDir: getWindCardinal(windyData.windDir),
+              windDirDeg: windyData.windDir,
               waveHeight: windyData.waveHeight,
               waterTemp: waterTemp, // Usamos o do Open-Meteo ou Windy se disponível
               source: 'Windy'
@@ -63,6 +64,7 @@ export function useWeather(lat, lon) {
             temp: Math.round(weatherJson.current.temperature_2m),
             windKnots,
             windDir,
+            windDirDeg: weatherJson.current.wind_direction_10m,
             waveHeight: marineJson.current.wave_height ? marineJson.current.wave_height.toFixed(1) : "-",
             waterTemp: marineJson.current.sea_surface_temperature ? marineJson.current.sea_surface_temperature.toFixed(1) : "-",
             source: 'Open-Meteo'
