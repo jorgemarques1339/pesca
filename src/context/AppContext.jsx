@@ -19,8 +19,11 @@ export const AppProvider = ({ children }) => {
   const [showWindVectors, setShowWindVectors] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
   const [showCommunityLayer, setShowCommunityLayer] = useState(false);
+  const [showShops, setShowShops] = useState(false);
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [shopsData, setShopsData] = useState([]);
+  const [isLoadingShops, setIsLoadingShops] = useState(false);
   const [navTarget, setNavTarget] = useState(null);
 
   // Persistence: Waypoints
@@ -73,11 +76,64 @@ export const AppProvider = ({ children }) => {
 
   const [mapCenterRequest, setMapCenterRequest] = useState(null);
 
-  const requestCenterMap = () => {
+  const requestCenterMap = (zoomArg = 13) => {
     if (userPos) {
-      setMapCenterRequest({ lat: userPos.lat, lng: userPos.lng, zoom: 13, timestamp: Date.now() });
+      // If zoomArg is an event object (from onClick), use default 13
+      const zoom = typeof zoomArg === 'number' ? zoomArg : 13;
+      setMapCenterRequest({ lat: userPos.lat, lng: userPos.lng, zoom, timestamp: Date.now() });
     } else {
       alert("Geolocalização não disponível.");
+    }
+  };
+
+  const fetchShops = async (lat, lon) => {
+    setIsLoadingShops(true);
+    try {
+      // Expanded query: nwr finds Nodes, Ways, and Relations. 
+      // Includes more tags and out center for polygon centers.
+      const query = `[out:json];(nwr["shop"~"fishing|tackle|fishing_tackle"](around:20000,${lat},${lon});nwr["shop"~"sports|outdoors|wholesale"]["name"~"pesca",i](around:20000,${lat},${lon}););out center;`;
+      const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'PescaApp/1.0 (contact: info@pesca.pt)'
+        }
+      });
+      const data = await response.json();
+      
+      if (!data.elements) {
+        setShopsData([]);
+        return;
+      }
+
+      const formattedShops = data.elements.map(el => {
+        const lat = el.lat || (el.center && el.center.lat);
+        const lon = el.lon || (el.center && el.center.lon);
+        
+        return {
+          id: el.id,
+          name: el.tags?.name || "Loja de Pesca",
+          lat,
+          lng: lon,
+          type: 'shop',
+          address: el.tags?.['addr:street'] ? `${el.tags['addr:street']}${el.tags['addr:housenumber'] ? ', ' + el.tags['addr:housenumber'] : ''}` : (el.tags?.operator || "Endereço não disponível"),
+          phone: el.tags?.phone || el.tags?.['contact:phone'] || null,
+          website: el.tags?.website || el.tags?.['contact:website'] || null
+        };
+      }).filter(shop => shop.lat && shop.lng); // Ensure we have coordinates
+      
+      if (formattedShops.length === 0) {
+        alert("Não foram encontradas lojas de pesca num raio de 20 km da sua localização.");
+      }
+      
+      setShopsData(formattedShops);
+      setShowShops(true);
+      requestCenterMap(15);
+    } catch (error) {
+      console.error("Error fetching shops:", error);
+    } finally {
+      setIsLoadingShops(false);
     }
   };
 
@@ -90,6 +146,7 @@ export const AppProvider = ({ children }) => {
     showWindVectors, setShowWindVectors,
     showRadar, setShowRadar,
     showCommunityLayer, setShowCommunityLayer,
+    showShops, setShowShops,
     isOfflineModalOpen, setIsOfflineModalOpen,
     isSearchOpen, setIsSearchOpen,
     navTarget, setNavTarget,
@@ -97,7 +154,8 @@ export const AppProvider = ({ children }) => {
     logs, handleAddLog, handleDeleteLog,
     userPos, heading, requestOrientationPermission,
     tides, solunarData, weatherData,
-    mapCenterRequest, setMapCenterRequest, requestCenterMap
+    mapCenterRequest, setMapCenterRequest, requestCenterMap,
+    shopsData, isLoadingShops, fetchShops
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

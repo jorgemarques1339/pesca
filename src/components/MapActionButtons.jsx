@@ -23,7 +23,6 @@ const MapActionButtons = () => {
     { id: 'bathymetry', icon: Waves, active: showBathymetry, action: () => setShowBathymetry(!showBathymetry), title: "Batimetria" },
     { id: 'wind', icon: Wind, active: showWindVectors, action: () => setShowWindVectors(!showWindVectors), title: "Vento" },
     { id: 'marine', icon: Layers, active: showMarineLayer, action: () => setShowMarineLayer(!showMarineLayer), title: "Cartas Náuticas" },
-    { id: 'community', icon: Users, active: showCommunityLayer, action: () => setShowCommunityLayer(!showCommunityLayer), title: "Comunidade" },
     { id: 'offline', icon: Database, active: false, action: () => setIsOfflineModalOpen(true), title: "Download Mapas" },
   ];
 

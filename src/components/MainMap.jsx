@@ -51,6 +51,7 @@ const MainMap = () => {
     showWindVectors,
     showRadar,
     showCommunityLayer,
+    showShops,
     waypoints,
     handleRemoveWaypoint,
     setNavTarget,
@@ -173,7 +174,7 @@ const MainMap = () => {
           onZoneClick={setSelectedZone} 
         />
 
-        <CommunityMarkers visible={showCommunityLayer} />
+        <CommunityMarkers visible={showCommunityLayer} showShops={showShops} />
 
         <MapWaypoints 
           waypoints={waypoints} 

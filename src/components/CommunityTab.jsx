@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, MessageCircle, Share2, MapPin, Trophy, Users as UsersIcon, Plus, CheckCircle2, Coins } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MapPin, Trophy, Users as UsersIcon, Plus, CheckCircle2, Coins, Store } from 'lucide-react';
 import EliteTab from './EliteTab';
 import { useAppContext } from '../context/AppContext';
 
@@ -56,9 +56,9 @@ const MOCK_POSTS = [
 ];
 
 const CommunityTab = ({ active }) => {
-  const { logs } = useAppContext();
+  const { logs, setShowShops, setActiveTab, fetchShops, userPos, isLoadingShops } = useAppContext();
   const [activeSubTab, setActiveSubTab] = React.useState('social'); // 'social' or 'elite'
-  
+
   const [localPosts] = React.useState(() => {
     const saved = localStorage.getItem("community_posts");
     return saved ? JSON.parse(saved) : [];
@@ -79,6 +79,40 @@ const CommunityTab = ({ active }) => {
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            disabled={isLoadingShops}
+            onClick={() => {
+              if (userPos) {
+                fetchShops(userPos.lat, userPos.lng);
+                setActiveTab('map');
+              } else {
+                alert("Ative a geolocalização para encontrar lojas próximas.");
+              }
+            }}
+            style={{ 
+              background: 'var(--bg-secondary)', 
+              border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: '16px', 
+              padding: '8px 12px', 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '4px',
+              cursor: isLoadingShops ? 'wait' : 'pointer',
+              color: isLoadingShops ? 'var(--text-secondary)' : 'var(--accent-cyan)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              transition: 'all 0.3s ease',
+              minWidth: '80px',
+              opacity: isLoadingShops ? 0.7 : 1
+            }}
+          >
+            <Store size={20} className={isLoadingShops ? "pulse" : ""} />
+            <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: 0.5 }}>
+              {isLoadingShops ? 'PROCURANDO...' : 'LOJAS'}
+            </span>
+          </button>
+
           <button 
             onClick={() => setActiveSubTab(activeSubTab === 'social' ? 'elite' : 'social')}
             style={{ 
