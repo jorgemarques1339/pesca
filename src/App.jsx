@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import L from "leaflet";
 import {
   MapContainer,
   TileLayer,
@@ -18,7 +19,9 @@ import {
   MapPin,
   Layers,
   Users,
-  Database
+  Database,
+  Trophy,
+  Ruler
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./App.css";
@@ -26,121 +29,85 @@ import "./App.css";
 // Constants & Components
 import { ZONES } from "./constants/zones";
 import WeatherWidget from "./components/WeatherWidget";
-import TideWidget from "./components/TideWidget";
 import GuideTab from "./components/GuideTab";
 import LogbookTab from "./components/LogbookTab";
 import CommunityTab from "./components/CommunityTab";
 import MapEventsHandler from "./components/MapEventsHandler";
 import OfflineModal from "./components/OfflineModal";
+import ZonePolygons from "./components/ZonePolygons";
+import MapWaypoints from "./components/MapWaypoints";
+import TideMarkers from "./components/TideMarkers";
+import CommunityMarkers from "./components/CommunityMarkers";
+import EliteTab from "./components/EliteTab";
+
+// Hooks
+import { useTides } from "./hooks/useTides";
+import { useWeather } from "./hooks/useWeather";
+import { useSolunar } from "./hooks/useSolunar";
+import { useGeolocation } from "./hooks/useGeolocation";
+import { useOrientation } from "./hooks/useOrientation";
+import { isPointInPolygon } from "./utils/geoUtils";
+import NavigationPanel from "./components/NavigationPanel";
 
 function App() {
+  const mapRef = useRef(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [activeTab, setActiveTab] = useState("map"); 
   
   // Waypoint & Layers State
   const [isWaypointMode, setIsWaypointMode] = useState(false);
   const [showMarineLayer, setShowMarineLayer] = useState(false);
+  const [showCommunityLayer, setShowCommunityLayer] = useState(false);
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
   const [waypoints, setWaypoints] = useState(() => {
     const saved = localStorage.getItem("fishing_waypoints");
     return saved ? JSON.parse(saved) : [];
   });
-
-  const [tides, setTides] = useState({
-    loading: true,
-    norte: null,
-    centro: null,
-    sul: null,
-    error: null,
-  });
-  
-  const [weatherData, setWeatherData] = useState({
-    loading: true,
-    data: null,
-    error: null,
+  const [navTarget, setNavTarget] = useState(null);
+  const [logs, setLogs] = useState(() => {
+    const saved = localStorage.getItem("fishing_logs");
+    return saved ? JSON.parse(saved) : [];
   });
 
-  const getWindCardinal = (degrees) => {
-    const val = Math.floor((degrees / 22.5) + 0.5);
-    const arr = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-    return arr[(val % 16)];
+  const handleAddLog = (log) => {
+    const updated = [log, ...logs];
+    setLogs(updated);
+    localStorage.setItem("fishing_logs", JSON.stringify(updated));
   };
 
+  const handleDeleteLog = (id) => {
+    const updated = logs.filter(l => l.id !== id);
+    setLogs(updated);
+    localStorage.setItem("fishing_logs", JSON.stringify(updated));
+  };
+
+  const tides = useTides();
+  const solunarData = useSolunar(tides);
+  const { position: userPos } = useGeolocation();
+  const { heading, requestPermission } = useOrientation();
+  
+  const lat = selectedZone ? selectedZone.coordinates[0][0] : (userPos ? userPos.lat : 39.5);
+  const lon = selectedZone ? selectedZone.coordinates[0][1] : (userPos ? userPos.lng : -8.0);
+  const weatherData = useWeather(lat, lon);
+
+  // Geofencing Logic
   useEffect(() => {
-    const fetchAllData = async () => {
-      setTides((prev) => ({ ...prev, loading: true }));
-      setWeatherData((prev) => ({ ...prev, loading: true }));
-
-      const lat = selectedZone ? selectedZone.coordinates[0][0] : 41.15;
-      const lon = selectedZone ? selectedZone.coordinates[0][1] : -8.61;
-
-      try {
-        const urls = [
-          { key: 'norte', url: '/Portugal/Porto/Vila-do-Conde/' },
-          { key: 'centro', url: '/Portugal/Lisboa/Cascais/' },
-          { key: 'sul', url: '/Portugal/Faro/Faro/' }
-        ];
-
-        const tideResults = await Promise.all(urls.map(async ({key, url}) => {
-          const res = await fetch(`/api/tabua${url}`);
-          if (!res.ok) throw new Error("Tide Network Error");
-          const html = await res.text();
-          
-          // Improved regex for TidesChart table structure
-          const matches = [...html.matchAll(/<td>(High tide|Low tide)<\/td>\s*<td>(\d{1,2}:\d{2}\s+(?:am|pm))<\/td>/ig)];
-          
-          const highTides = matches.filter(m => m[1].toLowerCase().includes('high')).map(m => m[2]);
-          const lowTides = matches.filter(m => m[1].toLowerCase().includes('low')).map(m => m[2]);
-          
-          return { 
-            key, 
-            data: { 
-              preia1: highTides[0] || "--:--", 
-              preia2: highTides[1] || "--:--", 
-              baixa1: lowTides[0] || "--:--", 
-              baixa2: lowTides[1] || "--:--" 
-            } 
-          };
-        }));
-
-        const newTides = { norte: null, centro: null, sul: null };
-        tideResults.forEach(r => newTides[r.key] = r.data);
-        
-        setTides({ loading: false, ...newTides, error: null });
-      } catch (err) {
-        setTides({ loading: false, norte: null, centro: null, sul: null, error: "Erro ao carregar marés" });
+    if (userPos) {
+      const forbiddenZones = ZONES.filter(z => z.type === "forbidden");
+      const currentZone = forbiddenZones.find(z => isPointInPolygon([userPos.lat, userPos.lng], z.coordinates));
+      
+      if (currentZone) {
+        // Trigger alert
+        if ('speechSynthesis' in window) {
+          const msg = new SpeechSynthesisUtterance(`Atenção: Entrou em zona de pesca proibida: ${currentZone.name}`);
+          msg.lang = 'pt-PT';
+          window.speechSynthesis.speak(msg);
+        }
+        alert(`ALERTA: Está dentro de uma ZONA PROIBIDA (${currentZone.name})!`);
       }
+    }
+  }, [userPos]);
 
-      try {
-        const [weatherRes, marineRes] = await Promise.all([
-          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m`),
-          fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,sea_surface_temperature`)
-        ]);
-
-        const weatherJson = await weatherRes.json();
-        const marineJson = await marineRes.json();
-
-        const windKnots = Math.round(weatherJson.current.wind_speed_10m * 0.539957);
-        const windDir = getWindCardinal(weatherJson.current.wind_direction_10m);
-
-        setWeatherData({
-          loading: false,
-          data: {
-            temp: Math.round(weatherJson.current.temperature_2m),
-            windKnots,
-            windDir,
-            waveHeight: marineJson.current.wave_height ? marineJson.current.wave_height.toFixed(1) : "-",
-            waterTemp: marineJson.current.sea_surface_temperature ? marineJson.current.sea_surface_temperature.toFixed(1) : "-"
-          },
-          error: null
-        });
-      } catch (err) {
-        setWeatherData({ loading: false, data: null, error: "Erro ao carregar meteorologia" });
-      }
-    };
-
-    fetchAllData();
-  }, [selectedZone]);
 
   const handleMapClick = (latlng) => {
     if (!isWaypointMode) return;
@@ -175,11 +142,31 @@ function App() {
             <Layers size={20} />
           </button>
           <button 
+            className={`fab ${showCommunityLayer ? 'active' : ''}`}
+            onClick={() => setShowCommunityLayer(!showCommunityLayer)}
+            title="Comunidade & Lojas"
+          >
+            <Users size={20} />
+          </button>
+          <button 
             className={`fab ${isWaypointMode ? 'active pulse' : ''}`}
             onClick={() => setIsWaypointMode(!isWaypointMode)}
             title="Adicionar Waypoint"
           >
             <MapPin size={20} />
+          </button>
+          <button 
+            className="fab"
+            onClick={() => {
+              if (userPos && mapRef.current) {
+                mapRef.current.setView([userPos.lat, userPos.lng], 13);
+              } else if (!userPos) {
+                alert("Geolocalização não disponível.");
+              }
+            }}
+            title="Minha Localização"
+          >
+            <Anchor size={20} />
           </button>
           <button 
             className="fab"
@@ -196,6 +183,13 @@ function App() {
         onClose={() => setIsOfflineModalOpen(false)} 
       />
 
+      <NavigationPanel 
+        userPos={userPos} 
+        target={navTarget} 
+        heading={heading} 
+        onClose={() => setNavTarget(null)} 
+      />
+
       {/* Background Map */}
       <div className="map-container" style={{ cursor: isWaypointMode ? 'crosshair' : 'grab' }}>
         <MapContainer
@@ -203,6 +197,7 @@ function App() {
           zoom={7}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
+          ref={mapRef}
         >
           {/* Tile Layer Base - Satellite */}
           <TileLayer
@@ -236,88 +231,52 @@ function App() {
           </SVGOverlay>
 
           {/* Tides Anchored to Map */}
-          {!tides.loading && !tides.error && (
-            <>
-              {/* Norte (Offshore Viana/Porto) */}
-              <Marker position={[41.2, -9.6]} opacity={0}>
-                <Tooltip permanent direction="center" className="tide-tooltip-container">
-                  <TideWidget title="Norte" data={tides.norte} />
-                </Tooltip>
-              </Marker>
-              
-              {/* Centro (Offshore Peniche/Lisboa) */}
-              <Marker position={[39.1, -10.3]} opacity={0}>
-                <Tooltip permanent direction="center" className="tide-tooltip-container">
-                  <TideWidget title="Centro" data={tides.centro} />
-                </Tooltip>
-              </Marker>
-              
-              {/* Sul (Offshore Sagres/Faro) */}
-              <Marker position={[36.7, -8.8]} opacity={0}>
-                <Tooltip permanent direction="center" className="tide-tooltip-container">
-                  <TideWidget title="Sul" data={tides.sul} />
-                </Tooltip>
-              </Marker>
-            </>
+          <TideMarkers tides={tides} />
+
+          {/* User Location Marker */}
+          {userPos && (
+            <Marker 
+              position={[userPos.lat, userPos.lng]} 
+              icon={new L.Icon({
+                iconUrl: 'https://cdn-icons-png.flaticon.com/512/7133/7133312.png',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+              })}
+            >
+              <Popup>Sua localização atual</Popup>
+            </Marker>
           )}
 
           {/* Zones Polygons */}
-          {ZONES.map((zone) => (
-            <Polygon
-              key={zone.id}
-              positions={zone.coordinates}
-              pathOptions={{
-                color: zone.type === "allowed" ? "#10B981" : "#EF4444",
-                fillOpacity: 0.4,
-                weight: 2,
-              }}
-              eventHandlers={{
-                click: () => {
-                  if (!isWaypointMode) {
-                    setSelectedZone(zone);
-                  }
-                },
-              }}
-            >
-              <Popup>
-                <div style={{ padding: "4px" }}>
-                  <h3 style={{ margin: "0 0 8px 0", fontSize: "16px" }}>{zone.name}</h3>
-                  <p style={{ margin: 0, fontSize: "14px" }}>{zone.description}</p>
-                </div>
-              </Popup>
-            </Polygon>
-          ))}
+          <ZonePolygons 
+            isWaypointMode={isWaypointMode} 
+            onZoneClick={setSelectedZone} 
+          />
+
+          {/* Community Points (Shops, Ramps) */}
+          <CommunityMarkers visible={showCommunityLayer} />
 
           {/* User Waypoints */}
-          {waypoints.map((wp) => (
-            <Marker key={wp.id} position={[wp.lat, wp.lng]}>
-              <Popup>
-                <div style={{ padding: "4px", textAlign: "center" }}>
-                  <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", color: "var(--accent-yellow)" }}>
-                    <MapPin size={16} style={{ verticalAlign: 'middle', marginRight: 4 }}/>
-                    {wp.name}
-                  </h3>
-                  <button 
-                    onClick={() => {
-                      const updated = waypoints.filter(w => w.id !== wp.id);
-                      setWaypoints(updated);
-                      localStorage.setItem("fishing_waypoints", JSON.stringify(updated));
-                    }}
-                    style={{ background: 'none', border: '1px solid var(--status-bad)', color: 'var(--status-bad)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer' }}
-                  >
-                    Remover
-                  </button>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          <MapWaypoints 
+            waypoints={waypoints} 
+            onRemoveWaypoint={(id) => {
+              const updated = waypoints.filter(w => w.id !== id);
+              setWaypoints(updated);
+              localStorage.setItem("fishing_waypoints", JSON.stringify(updated));
+              if (navTarget?.id === id) setNavTarget(null);
+            }}
+            onNavigateTo={async (wp) => {
+              await requestPermission();
+              setNavTarget(wp);
+            }}
+          />
         </MapContainer>
       </div>
 
       {/* UI Overlay */}
       <div className="overlay-container" style={{ pointerEvents: 'none' }}>
         <div className="sidebar-right" style={{ pointerEvents: 'auto' }}>
-          <WeatherWidget weatherData={weatherData} />
+          <WeatherWidget weatherData={weatherData} solunarData={solunarData} />
         </div>
       </div>
 
@@ -326,7 +285,10 @@ function App() {
           <MapIcon size={24} /><span>Mapa</span>
         </button>
         <button className={`nav-button ${activeTab === "scale" ? "active" : ""}`} onClick={() => setActiveTab("scale")}>
-          <Scale size={24} /><span>Guia</span>
+          <Ruler size={24} /><span>Guia</span>
+        </button>
+        <button className={`nav-button ${activeTab === "elite" ? "active" : ""}`} onClick={() => setActiveTab("elite")}>
+          <Trophy size={24} /><span>Elite</span>
         </button>
         <button className={`nav-button ${activeTab === "community" ? "active" : ""}`} onClick={() => setActiveTab("community")}>
           <Users size={24} /><span>Social</span>
@@ -337,7 +299,17 @@ function App() {
       </div>
 
       <GuideTab active={activeTab === 'scale'} />
-      <LogbookTab active={activeTab === 'book'} selectedZone={selectedZone} />
+      <LogbookTab 
+        active={activeTab === "book"} 
+        selectedZone={selectedZone}
+        weatherData={weatherData}
+        tides={tides}
+        solunarData={solunarData}
+        logs={logs}
+        onAddLog={handleAddLog}
+        onDeleteLog={handleDeleteLog}
+      />
+      <EliteTab active={activeTab === 'elite'} logs={logs} />
       <CommunityTab active={activeTab === 'community'} />
 
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Camera, ScanLine, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Wind, Waves, Moon, Plus, Trash2, Camera, ScanLine, CheckCircle2, AlertTriangle, Share2 } from 'lucide-react';
 
 const AI_FISH_DATABASE = [
   { name: "Robalo", size: "42cm", legal: true },
@@ -9,12 +9,7 @@ const AI_FISH_DATABASE = [
   { name: "Polvo", size: "1.2kg", legal: true },
 ];
 
-const LogbookTab = ({ active, selectedZone }) => {
-  const [logs, setLogs] = useState(() => {
-    const saved = localStorage.getItem("fishing_logs");
-    return saved ? JSON.parse(saved) : [];
-  });
-  
+const LogbookTab = ({ active, selectedZone, weatherData, tides, solunarData, logs, onAddLog, onDeleteLog }) => {
   const [newLog, setNewLog] = useState({ species: "", bait: "", note: "", image: null });
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
@@ -23,23 +18,46 @@ const LogbookTab = ({ active, selectedZone }) => {
 
   const handleAddLog = () => {
     if (!newLog.species) return;
+
     const log = {
       id: Date.now(),
       date: new Date().toLocaleDateString(),
       zone: selectedZone ? selectedZone.name : "Local Desconhecido",
+      metadata: {
+        wind: weatherData?.data ? `${weatherData.data.windKnots}kn ${weatherData.data.windDir}` : "N/A",
+        waves: weatherData?.data ? `${weatherData.data.waveHeight}m` : "N/A",
+        moon: solunarData?.moonPhase || "N/A",
+        prob: solunarData?.probability || 0
+      },
       ...newLog
     };
-    const updated = [log, ...logs];
-    setLogs(updated);
-    localStorage.setItem("fishing_logs", JSON.stringify(updated));
+
+    onAddLog(log);
     setNewLog({ species: "", bait: "", note: "", image: null });
     setScanResult(null);
   };
 
   const deleteLog = (id) => {
-    const updated = logs.filter(l => l.id !== id);
-    setLogs(updated);
-    localStorage.setItem("fishing_logs", JSON.stringify(updated));
+    onDeleteLog(id);
+  };
+
+  const shareLog = (log) => {
+    const sharedPosts = JSON.parse(localStorage.getItem("community_posts") || "[]");
+    const newPost = {
+      id: Date.now(),
+      user: "Eu (Pescador)",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=User",
+      time: "Agora",
+      image: log.image,
+      species: log.species,
+      weight: "N/A", // Could calculate from guide if needed
+      location: log.zone,
+      likes: 0,
+      comments: 0,
+      isLocal: true
+    };
+    localStorage.setItem("community_posts", JSON.stringify([newPost, ...sharedPosts]));
+    alert("Captura partilhada com a comunidade!");
   };
 
   const handleImageCapture = (e) => {
@@ -59,13 +77,19 @@ const LogbookTab = ({ active, selectedZone }) => {
     setIsScanning(true);
     setScanResult(null);
     
-    // Simulate API delay
+    // Simulate API delay with random fish
     setTimeout(() => {
       const randomFish = AI_FISH_DATABASE[Math.floor(Math.random() * AI_FISH_DATABASE.length)];
       setScanResult(randomFish);
       setNewLog(prev => ({ ...prev, species: randomFish.name }));
       setIsScanning(false);
-    }, 2000);
+    }, 2500);
+  };
+
+  const confirmDelete = (id) => {
+    if (window.confirm("Tem a certeza que deseja remover este registo?")) {
+      deleteLog(id);
+    }
   };
 
   return (
@@ -98,9 +122,15 @@ const LogbookTab = ({ active, selectedZone }) => {
             <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}>
               <img src={newLog.image} alt="Captura" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               {isScanning && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)' }}>
-                  <ScanLine size={32} className="pulse" style={{ marginBottom: 8 }} />
-                  <span>A analisar espécie...</span>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)' }}>
+                  <svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
+                    <rect x="20%" y="20%" width="60%" height="60%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" strokeDasharray="10 5" className="scan-rect" />
+                    <line x1="20%" y1="20%" x2="80%" y2="80%" stroke="rgba(100, 210, 255, 0.3)" strokeWidth="1" className="scan-line-diag" />
+                  </svg>
+                  <ScanLine size={48} className="scan-bar" />
+                  <div style={{ zIndex: 1, background: 'rgba(0,0,0,0.7)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.05em' }}>
+                    A ANALISAR BIOMETRIA...
+                  </div>
                 </div>
               )}
             </div>
@@ -159,16 +189,42 @@ const LogbookTab = ({ active, selectedZone }) => {
                   <div style={{ flex: 1 }}>
                     <span className="log-date">{log.date} - {log.zone}</span>
                     <span className="log-species">{log.species}</span>
+                    
+                    {/* Environmental Metadata */}
+                    {log.metadata && (
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '4px', opacity: 0.8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem' }}>
+                          <Wind size={12} color="var(--accent-cyan)" /> {log.metadata.wind}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem' }}>
+                          <Waves size={12} color="var(--accent-blue)" /> {log.metadata.waves}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem' }}>
+                          <Moon size={12} color="var(--text-secondary)" /> {log.metadata.moon}
+                        </div>
+                      </div>
+                    )}
+
                     {log.bait && <span className="log-details" style={{display: 'block'}}>Isco: {log.bait}</span>}
                     {log.note && <span className="log-details" style={{display: 'block', fontStyle: 'italic'}}>"{log.note}"</span>}
                   </div>
                 </div>
-                <button 
-                  onClick={() => deleteLog(log.id)}
-                  style={{background: 'none', border: 'none', color: 'var(--status-bad)', cursor: 'pointer', padding: 8}}
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button 
+                    onClick={() => shareLog(log)}
+                    style={{background: 'rgba(10, 132, 255, 0.1)', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', padding: 8, borderRadius: 8}}
+                    title="Partilhar na Comunidade"
+                  >
+                    <Share2 size={18} />
+                  </button>
+                  <button 
+                    onClick={() => confirmDelete(log.id)}
+                    style={{background: 'rgba(255, 69, 58, 0.1)', border: 'none', color: 'var(--status-bad)', cursor: 'pointer', padding: 8, borderRadius: 8}}
+                    title="Remover registo"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
             </div>
           ))

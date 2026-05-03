@@ -22,6 +22,22 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'any maskable'
           }
+        ],
+        shortcuts: [
+          {
+            name: 'Mapa de Pesca',
+            short_name: 'Mapa',
+            description: 'Ver zonas de pesca e marés',
+            url: '/',
+            icons: [{ src: 'https://cdn-icons-png.flaticon.com/512/854/854878.png', sizes: '192x192' }]
+          },
+          {
+            name: 'Diário de Capturas',
+            short_name: 'Diário',
+            description: 'Registar novo peixe',
+            url: '/#book',
+            icons: [{ src: 'https://cdn-icons-png.flaticon.com/512/3062/3062125.png', sizes: '192x192' }]
+          }
         ]
       },
       workbox: {

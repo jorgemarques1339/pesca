@@ -41,13 +41,20 @@ const MOCK_POSTS = [
 ];
 
 const CommunityTab = ({ active }) => {
+  const [localPosts, setLocalPosts] = React.useState(() => {
+    const saved = localStorage.getItem("community_posts");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const allPosts = [...localPosts, ...MOCK_POSTS];
+
   return (
     <div className="content-container" style={{ display: active ? 'block' : 'none' }}>
       <h1 className="ios-large-title">Comunidade</h1>
       <p style={{color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20}}>Vê o que está a morder na costa portuguesa.</p>
       
       <div className="feed-container">
-        {MOCK_POSTS.map(post => (
+        {allPosts.map(post => (
           <div key={post.id} className="post-card" style={{ background: 'var(--bg-secondary)', borderRadius: '16px', overflow: 'hidden', marginBottom: '24px' }}>
             <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <img src={post.avatar} alt={post.user} style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#fff' }} />

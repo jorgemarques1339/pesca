@@ -14,8 +14,15 @@ const TideWidget = ({ title, data }) => {
       {/* Wave Graph SVG Mock */}
       <div className="atw-graph">
         <svg viewBox="0 0 100 40" preserveAspectRatio="none">
-           <path d="M0 20 Q 25 5, 50 20 T 100 20 L 100 40 L 0 40 Z" fill="rgba(10, 132, 255, 0.2)" />
-           <path d="M0 20 Q 25 5, 50 20 T 100 20" fill="none" stroke="rgb(10, 132, 255)" strokeWidth="2" />
+           <defs>
+             <linearGradient id="waveGradient" x1="0" y1="0" x2="0" y2="1">
+               <stop offset="0%" stopColor="rgba(10, 132, 255, 0.4)" />
+               <stop offset="100%" stopColor="rgba(10, 132, 255, 0)" />
+             </linearGradient>
+           </defs>
+           <path d="M0 25 Q 25 5, 50 25 T 100 25 L 100 40 L 0 40 Z" fill="url(#waveGradient)" />
+           <path d="M0 25 Q 25 5, 50 25 T 100 25" fill="none" stroke="rgb(10, 132, 255)" strokeWidth="1.5" />
+           <circle cx="25" cy="15" r="2" fill="white" className="pulse-dot" />
         </svg>
       </div>
 
