@@ -1,71 +1,116 @@
+import React from 'react';
 import { Wind, Waves, Thermometer, Moon, Target } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const WeatherWidget = ({ weatherData, solunarData }) => {
+  const isMobile = window.innerWidth < 768;
+
+  if (weatherData.loading) {
+    return (
+      <div className="glass-panel widget weather-widget-container loading">
+        <span className="loading-text">Carregando mar e vento...</span>
+      </div>
+    );
+  }
+
+  // Compact Mobile Capsule Layout
+  if (isMobile) {
+    return (
+      <motion.div 
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="weather-capsule-mobile"
+      >
+        {solunarData && (
+          <div className="capsule-item probability">
+            <Target size={14} color="var(--accent-cyan)" />
+            <span className="v">{solunarData.probability}%</span>
+          </div>
+        )}
+        
+        {weatherData.data && (
+          <>
+            <div className="capsule-item">
+              <Wind size={14} color="var(--accent-cyan)" />
+              <span className="v">{weatherData.data.windKnots}kn</span>
+            </div>
+            <div className="capsule-item">
+              <Waves size={14} color="var(--accent-blue)" />
+              <span className="v">{weatherData.data.waveHeight}m</span>
+            </div>
+            <div className="capsule-item">
+              <Thermometer size={14} color="var(--accent-cyan)" />
+              <span className="v">{weatherData.data.temp}°</span>
+            </div>
+          </>
+        )}
+
+        {solunarData && (
+          <div className="capsule-item moon">
+            <Moon size={14} color="var(--text-secondary)" />
+            <span className="v">{solunarData.moonPhase}</span>
+          </div>
+        )}
+      </motion.div>
+    );
+  }
+
+  // Professional Desktop Sidebar Layout
   return (
-    <div className="glass-panel widget weather-widget-container">
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="glass-panel widget weather-widget-container"
+    >
       <div className="widget-title">
         <Wind size={18} />
         Condições Atmosféricas
       </div>
 
       {solunarData && (
-        <div className="solunar-container" style={{ marginBottom: 8 }}>
+        <div className="solunar-container" style={{ marginBottom: 12 }}>
           <div className="probability-gauge">
-            <div className="gauge-fill" style={{ width: `${solunarData.probability}%`, background: solunarData.probability > 70 ? 'var(--status-good)' : solunarData.probability > 40 ? 'var(--status-warning)' : 'var(--status-bad)' }}></div>
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${solunarData.probability}%` }}
+              transition={{ duration: 1 }}
+              className="gauge-fill" 
+              style={{ background: solunarData.probability > 70 ? 'var(--status-good)' : 'var(--status-warning)' }}
+            />
           </div>
-          <div className="solunar-info-row" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-            <div className="solunar-stat">
+          <div className="flex-between mt-8">
+            <div className="flex-center gap-6">
               <Target size={16} color="var(--accent-cyan)" />
-              <span className="solunar-value">{solunarData.probability}%</span>
-              <span className="solunar-label"> Probabilidade</span>
+              <span className="v-bold">{solunarData.probability}%</span>
+              <span className="l-small">Probabilidade</span>
             </div>
-            <div className="solunar-stat">
+            <div className="flex-center gap-6">
               <Moon size={16} color="var(--text-secondary)" />
-              <span className="solunar-value">{solunarData.moonPhase}</span>
+              <span className="v-bold">{solunarData.moonPhase}</span>
             </div>
           </div>
         </div>
       )}
-      {weatherData.loading ? (
-        <div style={{ color: "var(--text-secondary)", textAlign: "center", padding: "10px" }}>A carregar dados...</div>
-      ) : weatherData.error ? (
-        <div style={{ color: "var(--status-bad)", textAlign: "center", padding: "10px" }}>{weatherData.error}</div>
-      ) : weatherData.data ? (
-        <>
-          <div className="weather-stat">
-            <div className="stat-left">
-              <Wind className="stat-icon" size={20} />
-              <span className="stat-label">Vento</span>
-            </div>
-            <span className="stat-value">{weatherData.data.windKnots} nós ({weatherData.data.windDir})</span>
-          </div>
 
-          <div className="weather-stat">
-            <div className="stat-left">
-              <Waves className="stat-icon" size={20} />
-              <span className="stat-label">Ondulação</span>
+      {weatherData.data && (
+        <div className="stats-grid">
+          {[
+            { icon: Wind, label: "Vento", value: `${weatherData.data.windKnots} nós (${weatherData.data.windDir})` },
+            { icon: Waves, label: "Ondulação", value: `${weatherData.data.waveHeight}m` },
+            { icon: Thermometer, label: "Ar", value: `${weatherData.data.temp}°C` },
+            { icon: ({ size, color }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || "currentColor"} strokeWidth="2"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>, label: "Água", value: `${weatherData.data.waterTemp}°C` }
+          ].map((stat, i) => (
+            <div key={i} className="weather-stat-row">
+              <div className="flex-center gap-10">
+                <stat.icon size={18} color="var(--accent-cyan)" />
+                <span className="l-small">{stat.label}</span>
+              </div>
+              <span className="v-bold">{stat.value}</span>
             </div>
-            <span className="stat-value">{weatherData.data.waveHeight}m</span>
-          </div>
-
-          <div className="weather-stat">
-            <div className="stat-left">
-              <Thermometer className="stat-icon" size={20} />
-              <span className="stat-label">Temp. Ar</span>
-            </div>
-            <span className="stat-value">{weatherData.data.temp}°C</span>
-          </div>
-
-          <div className="weather-stat">
-            <div className="stat-left">
-              <svg className="stat-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
-              <span className="stat-label">Temp. Água</span>
-            </div>
-            <span className="stat-value">{weatherData.data.waterTemp}°C</span>
-          </div>
-        </>
-      ) : null}
-    </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
   );
 };
 

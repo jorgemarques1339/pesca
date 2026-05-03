@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trophy, Medal, Target, TrendingUp, Users } from 'lucide-react';
 import { getUnlockedAchievements, ACHIEVEMENTS } from '../utils/achievementUtils';
+import { useAppContext } from '../context/AppContext';
 
 const MOCK_LEADERBOARD = [
   { rank: 1, user: "Mestre Manuel", points: 2450, catches: 12 },
@@ -9,7 +10,8 @@ const MOCK_LEADERBOARD = [
   { rank: 4, user: "Rui Vara", points: 1200, catches: 5 },
 ];
 
-const EliteTab = ({ active, logs, embedded }) => {
+const EliteTab = ({ active, embedded }) => {
+  const { logs } = useAppContext();
   const unlocked = getUnlockedAchievements(logs);
   const progress = (unlocked.length / ACHIEVEMENTS.length) * 100;
 
@@ -18,13 +20,13 @@ const EliteTab = ({ active, logs, embedded }) => {
       {!embedded && <h1 className="ios-large-title">Elite Pescador</h1>}
       
       {/* Active Tournament Section */}
-      <div className="glass-panel" style={{ padding: 20, marginBottom: 24, border: '1px solid rgba(255, 215, 0, 0.3)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="glass-panel p-20 mb-24 border-gold">
+        <div className="flex-between mb-16">
+          <div className="flex-center gap-10">
             <Trophy color="#FFD700" size={24} />
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Grande Troféu do Robalo</h2>
           </div>
-          <span style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'rgba(255,215,0,0.1)', color: '#FFD700', borderRadius: 10, fontWeight: 700 }}>LIVE</span>
+          <span className="badge-live">LIVE</span>
         </div>
 
         <div className="leaderboard" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -51,7 +53,7 @@ const EliteTab = ({ active, logs, embedded }) => {
       </h2>
       
       <div style={{ marginBottom: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.8rem' }}>
+        <div className="flex-between mb-8" style={{ fontSize: '0.8rem' }}>
           <span>Progresso Elite</span>
           <span style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{unlocked.length}/{ACHIEVEMENTS.length}</span>
         </div>
@@ -64,7 +66,7 @@ const EliteTab = ({ active, logs, embedded }) => {
         {ACHIEVEMENTS.map((ach) => {
           const isUnlocked = unlocked.some(u => u.id === ach.id);
           return (
-            <div key={ach.id} className="glass-panel" style={{ padding: 16, opacity: isUnlocked ? 1 : 0.4, border: isUnlocked ? '1px solid var(--accent-blue)' : '1px solid rgba(255,255,255,0.1)' }}>
+            <div key={ach.id} className={`glass-panel p-16 ${isUnlocked ? 'border-blue' : ''}`} style={{ opacity: isUnlocked ? 1 : 0.4 }}>
               <div style={{ fontSize: '2rem', marginBottom: 8 }}>{isUnlocked ? ach.icon : "🔒"}</div>
               <h4 style={{ fontSize: '0.9rem', margin: '0 0 4px 0' }}>{ach.name}</h4>
               <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0 }}>{ach.description}</p>
@@ -79,7 +81,7 @@ const EliteTab = ({ active, logs, embedded }) => {
           <TrendingUp size={20} color="var(--accent-cyan)" />
           Estatística Pessoal
         </h2>
-        <div className="glass-panel" style={{ padding: 16, textAlign: 'center' }}>
+        <div className="glass-panel p-16" style={{ textAlign: 'center' }}>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 0 }}>
             {logs.length > 0 
               ? `O teu isco mais mortífero: ${logs[0].bait || 'N/A'}`

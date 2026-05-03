@@ -1,17 +1,22 @@
 import React, { useState, useRef } from 'react';
-import { Wind, Waves, Moon, Plus, Trash2, Camera, ScanLine, CheckCircle2, AlertTriangle, Share2 } from 'lucide-react';
+import { Wind, Waves, Moon, Plus, Trash2, Camera, ScanLine, CheckCircle2, AlertTriangle, Share2, Info, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAppContext } from '../context/AppContext';
+import { analyzeFishImage } from '../utils/aiEngine';
 
-const AI_FISH_DATABASE = [
-  { name: "Robalo", size: "42cm", legal: true },
-  { name: "Sargo", size: "18cm", legal: true },
-  { name: "Dourada", size: "25cm", legal: true },
-  { name: "Robalo (Subdimensionado)", size: "28cm", legal: false },
-  { name: "Polvo", size: "1.2kg", legal: true },
-];
+const LogbookTab = ({ active }) => {
+  const {
+    selectedZone,
+    weatherData,
+    solunarData,
+    logs,
+    handleAddLog: onAddLog,
+    handleDeleteLog: onDeleteLog
+  } = useAppContext();
 
-const LogbookTab = ({ active, selectedZone, weatherData, tides, solunarData, logs, onAddLog, onDeleteLog }) => {
   const [newLog, setNewLog] = useState({ species: "", bait: "", note: "", image: null });
   const [isScanning, setIsScanning] = useState(false);
+  const [scanStep, setScanStep] = useState(0); // 0: Idle, 1: Biometrics, 2: Database, 3: Finalizing
   const [scanResult, setScanResult] = useState(null);
   
   const fileInputRef = useRef(null);
@@ -35,70 +40,57 @@ const LogbookTab = ({ active, selectedZone, weatherData, tides, solunarData, log
     onAddLog(log);
     setNewLog({ species: "", bait: "", note: "", image: null });
     setScanResult(null);
-  };
-
-  const deleteLog = (id) => {
-    onDeleteLog(id);
-  };
-
-  const shareLog = (log) => {
-    const sharedPosts = JSON.parse(localStorage.getItem("community_posts") || "[]");
-    const newPost = {
-      id: Date.now(),
-      user: "Eu (Pescador)",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=User",
-      time: "Agora",
-      image: log.image,
-      species: log.species,
-      weight: "N/A", // Could calculate from guide if needed
-      location: log.zone,
-      likes: 0,
-      comments: 0,
-      isLocal: true
-    };
-    localStorage.setItem("community_posts", JSON.stringify([newPost, ...sharedPosts]));
-    alert("Captura partilhada com a comunidade!");
+    setScanStep(0);
   };
 
   const handleImageCapture = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Simulate file reading and AI Scanning
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewLog(prev => ({ ...prev, image: reader.result }));
-        simulateAIScan();
+        startAIScan(reader.result);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const simulateAIScan = () => {
+  const startAIScan = async (imageData) => {
     setIsScanning(true);
     setScanResult(null);
     
-    // Simulate API delay with random fish
-    setTimeout(() => {
-      const randomFish = AI_FISH_DATABASE[Math.floor(Math.random() * AI_FISH_DATABASE.length)];
-      setScanResult(randomFish);
-      setNewLog(prev => ({ ...prev, species: randomFish.name }));
-      setIsScanning(false);
-    }, 2500);
+    // Step 1: Biometrics
+    setScanStep(1);
+    await new Promise(r => setTimeout(r, 800));
+    
+    // Step 2: Database
+    setScanStep(2);
+    const result = await analyzeFishImage(imageData);
+    
+    // Step 3: Finalizing
+    setScanStep(3);
+    await new Promise(r => setTimeout(r, 600));
+    
+    setScanResult(result);
+    setNewLog(prev => ({ ...prev, species: result.name }));
+    setIsScanning(false);
   };
 
-  const confirmDelete = (id) => {
-    if (window.confirm("Tem a certeza que deseja remover este registo?")) {
-      deleteLog(id);
+  const getScanMessage = () => {
+    switch(scanStep) {
+      case 1: return "Deteção de Biometria...";
+      case 2: return "Cruzando base de dados...";
+      case 3: return "Validando conformidade legal...";
+      default: return "";
     }
   };
 
   return (
-    <div className="content-container" style={{ display: active ? 'block' : 'none' }}>
+    <div className="content-container tab-panel-container" style={{ display: active ? 'block' : 'none' }}>
       <h1 className="ios-large-title">Diário de Pesca</h1>
-      <p style={{color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20}}>Registe as suas capturas e use a IA para identificar a espécie.</p>
+      <p style={{color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20}}>Registe as suas capturas e use a IA para validar o tamanho legal.</p>
       
-      <div style={{background: 'var(--bg-secondary)', padding: 16, borderRadius: 16, marginBottom: 20}}>
-        
+      <div className="glass-panel p-20 mb-24">
         {/* AI Camera Section */}
         <div style={{ marginBottom: 16 }}>
           <input 
@@ -112,123 +104,117 @@ const LogbookTab = ({ active, selectedZone, weatherData, tides, solunarData, log
           
           {!newLog.image ? (
             <button 
+              className="ai-scan-placeholder"
               onClick={() => fileInputRef.current?.click()} 
-              style={{ width: '100%', padding: '24px', background: 'rgba(255,255,255,0.05)', border: '2px dashed rgba(255,255,255,0.2)', borderRadius: '12px', color: 'var(--accent-blue)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
             >
               <Camera size={32} />
-              <span>Tirar foto ao peixe (Scanner IA)</span>
+              <span>Digitalizar Captura (IA)</span>
             </button>
           ) : (
-            <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}>
-              <img src={newLog.image} alt="Captura" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              {isScanning && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)' }}>
-                  <svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
-                    <rect x="20%" y="20%" width="60%" height="60%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" strokeDasharray="10 5" className="scan-rect" />
-                    <line x1="20%" y1="20%" x2="80%" y2="80%" stroke="rgba(100, 210, 255, 0.3)" strokeWidth="1" className="scan-line-diag" />
-                  </svg>
-                  <ScanLine size={48} className="scan-bar" />
-                  <div style={{ zIndex: 1, background: 'rgba(0,0,0,0.7)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.05em' }}>
-                    A ANALISAR BIOMETRIA...
-                  </div>
-                </div>
-              )}
+            <div className="scan-image-preview">
+              <img src={newLog.image} alt="Captura" />
+              <AnimatePresence>
+                {isScanning && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="scan-overlay"
+                  >
+                    <div className="scan-lines-container">
+                      <ScanLine size={48} className="scan-bar-animated" />
+                      <div className="scan-rect-focus"></div>
+                    </div>
+                    <div className="scan-status-capsule">
+                      <Activity size={14} className="pulse-slow" />
+                      <span>{getScanMessage()}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
-          {scanResult && !isScanning && (
-            <div style={{ padding: '12px', background: scanResult.legal ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', border: `1px solid ${scanResult.legal ? 'var(--status-good)' : 'var(--status-bad)'}`, borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {scanResult.legal ? <CheckCircle2 color="var(--status-good)" size={24} /> : <AlertTriangle color="var(--status-bad)" size={24} />}
-              <div>
-                <strong style={{ display: 'block', color: scanResult.legal ? 'var(--status-good)' : 'var(--status-bad)' }}>
-                  {scanResult.name} (Aprox. {scanResult.size})
-                </strong>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  {scanResult.legal ? 'Tamanho dentro da lei.' : 'Atenção: Espécime parece subdimensionado!'}
-                </span>
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {scanResult && !isScanning && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                className={`ai-result-card ${scanResult.isLegal ? 'legal' : 'illegal'}`}
+              >
+                <div className="flex-between">
+                  <div className="flex-center gap-10">
+                    {scanResult.isLegal ? <CheckCircle2 color="var(--status-good)" size={24} /> : <AlertTriangle color="var(--status-bad)" size={24} />}
+                    <div>
+                      <strong className="species-name">{scanResult.name}</strong>
+                      <span className="size-info">~{scanResult.estimatedSize}{scanResult.unit} (IA Confidence: {scanResult.analysisMetadata.probability}%)</span>
+                    </div>
+                  </div>
+                  <div className="legal-badge">
+                    {scanResult.isLegal ? 'LEGAL' : 'CURTO'}
+                  </div>
+                </div>
+                <div className="analysis-details">
+                  <Info size={14} />
+                  <p>{scanResult.analysisMetadata.recommendation}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <input 
-          className="form-input" 
-          placeholder="Espécie (ex: Robalo)" 
-          value={newLog.species}
-          onChange={(e) => setNewLog({...newLog, species: e.target.value})}
-        />
-        <input 
-          className="form-input" 
-          placeholder="Isco utilizado (ex: Casulo)" 
-          value={newLog.bait}
-          onChange={(e) => setNewLog({...newLog, bait: e.target.value})}
-        />
-        <textarea 
-          className="form-input" 
-          placeholder="Notas adicionais (estado do mar, maré, etc)" 
-          rows="2"
-          value={newLog.note}
-          onChange={(e) => setNewLog({...newLog, note: e.target.value})}
-        />
-        <button className="btn-primary" onClick={handleAddLog}>
-          <Plus size={18} /> Adicionar Registo
-        </button>
+        <div className="log-form">
+          <input 
+            className="form-input" 
+            placeholder="Espécie (ex: Robalo)" 
+            value={newLog.species}
+            onChange={(e) => setNewLog({...newLog, species: e.target.value})}
+          />
+          <input 
+            className="form-input" 
+            placeholder="Isco utilizado (ex: Casulo)" 
+            value={newLog.bait}
+            onChange={(e) => setNewLog({...newLog, bait: e.target.value})}
+          />
+          <textarea 
+            className="form-input" 
+            placeholder="Notas sobre a maré ou local..." 
+            rows="2"
+            value={newLog.note}
+            onChange={(e) => setNewLog({...newLog, note: e.target.value})}
+          />
+          <button className="btn-primary" onClick={handleAddLog}>
+            <Plus size={18} /> Guardar Registo
+          </button>
+        </div>
       </div>
 
-      <div>
-        {logs.length === 0 ? (
-          <p style={{textAlign: 'center', color: 'var(--text-secondary)'}}>Ainda sem registos.</p>
-        ) : (
-          logs.map(log => (
-            <div key={log.id} className="log-item">
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-                  {log.image && (
-                    <img src={log.image} alt="Fish" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+      <div className="logs-history">
+        {logs.map(log => (
+          <div key={log.id} className="log-item">
+            <div className="flex-between" style={{ alignItems: 'flex-start' }}>
+              <div className="flex-center gap-12" style={{ flex: 1 }}>
+                {log.image && <img src={log.image} className="log-thumbnail" alt="Fish" />}
+                <div style={{ flex: 1 }}>
+                  <span className="log-date">{log.date} - {log.zone}</span>
+                  <span className="log-species">{log.species}</span>
+                  
+                  {log.metadata && (
+                    <div className="log-meta-row">
+                      <div className="meta-item"><Wind size={12} /> {log.metadata.wind}</div>
+                      <div className="meta-item"><Waves size={12} /> {log.metadata.waves}</div>
+                      <div className="meta-item"><Moon size={12} /> {log.metadata.moon}</div>
+                    </div>
                   )}
-                  <div style={{ flex: 1 }}>
-                    <span className="log-date">{log.date} - {log.zone}</span>
-                    <span className="log-species">{log.species}</span>
-                    
-                    {/* Environmental Metadata */}
-                    {log.metadata && (
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '4px', opacity: 0.8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem' }}>
-                          <Wind size={12} color="var(--accent-cyan)" /> {log.metadata.wind}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem' }}>
-                          <Waves size={12} color="var(--accent-blue)" /> {log.metadata.waves}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem' }}>
-                          <Moon size={12} color="var(--text-secondary)" /> {log.metadata.moon}
-                        </div>
-                      </div>
-                    )}
-
-                    {log.bait && <span className="log-details" style={{display: 'block'}}>Isco: {log.bait}</span>}
-                    {log.note && <span className="log-details" style={{display: 'block', fontStyle: 'italic'}}>"{log.note}"</span>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button 
-                    onClick={() => shareLog(log)}
-                    style={{background: 'rgba(10, 132, 255, 0.1)', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', padding: 8, borderRadius: 8}}
-                    title="Partilhar na Comunidade"
-                  >
-                    <Share2 size={18} />
-                  </button>
-                  <button 
-                    onClick={() => confirmDelete(log.id)}
-                    style={{background: 'rgba(255, 69, 58, 0.1)', border: 'none', color: 'var(--status-bad)', cursor: 'pointer', padding: 8, borderRadius: 8}}
-                    title="Remover registo"
-                  >
-                    <Trash2 size={18} />
-                  </button>
                 </div>
               </div>
+              <div className="log-actions">
+                <button className="action-btn share" onClick={() => alert("Partilhado!")}><Share2 size={16} /></button>
+                <button className="action-btn delete" onClick={() => onDeleteLog(log.id)}><Trash2 size={16} /></button>
+              </div>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
     </div>
   );

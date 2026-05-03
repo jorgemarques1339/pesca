@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, MessageCircle, Share2, MapPin, Trophy, Users as UsersIcon, Plus, CheckCircle2, Coins } from 'lucide-react';
 import EliteTab from './EliteTab';
+import { useAppContext } from '../context/AppContext';
 
 const MOCK_POSTS = [
   {
@@ -54,10 +55,11 @@ const MOCK_POSTS = [
   }
 ];
 
-const CommunityTab = ({ active, logs }) => {
+const CommunityTab = ({ active }) => {
+  const { logs } = useAppContext();
   const [activeSubTab, setActiveSubTab] = React.useState('social'); // 'social' or 'elite'
   
-  const [localPosts, setLocalPosts] = React.useState(() => {
+  const [localPosts] = React.useState(() => {
     const saved = localStorage.getItem("community_posts");
     return saved ? JSON.parse(saved) : [];
   });
@@ -77,7 +79,6 @@ const CommunityTab = ({ active, logs }) => {
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Elite/Social Toggle */}
           <button 
             onClick={() => setActiveSubTab(activeSubTab === 'social' ? 'elite' : 'social')}
             style={{ 
@@ -231,7 +232,6 @@ const CommunityTab = ({ active, logs }) => {
                 marginBottom: '16px',
                 borderBottom: '1px solid rgba(255,255,255,0.05)' 
               }}>
-                {/* Header: Avatar + User */}
                 <div style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ 
                     padding: '2px', 
@@ -256,7 +256,6 @@ const CommunityTab = ({ active, logs }) => {
                   <button style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>•••</button>
                 </div>
                 
-                {/* Image: Full Width Square */}
                 <div style={{ 
                   width: '100%', 
                   aspectRatio: '1/1', 
@@ -265,7 +264,6 @@ const CommunityTab = ({ active, logs }) => {
                   borderBottom: '1px solid rgba(255,255,255,0.05)'
                 }} />
                 
-                {/* Actions */}
                 <div style={{ padding: '12px' }}>
                   <div style={{ display: 'flex', gap: '16px', marginBottom: '10px' }}>
                     <Heart size={24} style={{ cursor: 'pointer' }} />
@@ -276,23 +274,19 @@ const CommunityTab = ({ active, logs }) => {
                     </div>
                   </div>
                   
-                  {/* Engagement Info */}
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '6px' }}>
                     {post.likes} gostos
                   </div>
                   
-                  {/* Caption */}
                   <div style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>
                     <span style={{ fontWeight: 700, marginRight: '6px' }}>{post.user}</span>
                     Novo recorde de <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{post.species}</span> com {post.weight}! A maré estava perfeita. 🎣
                   </div>
                   
-                  {/* Comments Link */}
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '6px', cursor: 'pointer' }}>
                     Ver os {post.comments} comentários
                   </div>
                   
-                  {/* Time */}
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', textTransform: 'uppercase', marginTop: '8px' }}>
                     {post.time}
                   </div>
@@ -303,7 +297,6 @@ const CommunityTab = ({ active, logs }) => {
         </div>
       ) : (
         <div className="elite-sub-container">
-          {/* Premium Create Section */}
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -339,7 +332,7 @@ const CommunityTab = ({ active, logs }) => {
             </button>
           </div>
 
-          <EliteTab active={true} logs={logs} embedded={true} />
+          <EliteTab active={true} embedded={true} />
         </div>
       )}
     </div>
